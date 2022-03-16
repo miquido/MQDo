@@ -612,42 +612,44 @@ extension Features {
 					.with(self.scopes, for: "scope"),
 					removal: noop
 				)
-			guard var feature: Feature = cacheEntry.feature as? Feature
-			else {
-				InternalInconsistency
-					.error(message: "Feature is not matching expected type")
-					.with(self.scopes, for: "scope")
-					.with(Feature.self, for: "expected")
-					.with(type(of: cacheEntry.feature), for: "received")
-					.appending(
+			withExtendedLifetime(cacheEntry) {
+				guard var feature: Feature = cacheEntry.feature as? Feature
+				else {
+					InternalInconsistency
+						.error(message: "Feature is not matching expected type")
+						.with(self.scopes, for: "scope")
+						.with(Feature.self, for: "expected")
+						.with(type(of: cacheEntry.feature), for: "received")
+						.appending(
+							.message(
+								"FeatureLoader is invalid",
+								file: file,
+								line: line
+							)
+						)
+						.asFatalError()
+				}
+
+				feature[keyPath: keyPath] = updated
+				cacheEntry.feature = feature
+				cacheEntry
+					.debugContext
+					.append(
 						.message(
-							"FeatureLoader is invalid",
+							"Patched",
 							file: file,
 							line: line
 						)
+						.with(self.scopes, for: "scope")
 					)
-					.asFatalError()
+				cache.set(
+					entry: cacheEntry,
+					for: .identifier(
+						of: Feature.self,
+						context: context
+					)
+				)
 			}
-
-			feature[keyPath: keyPath] = updated
-			cacheEntry.feature = feature
-			cacheEntry
-				.debugContext
-				.append(
-					.message(
-						"Patched",
-						file: file,
-						line: line
-					)
-					.with(self.scopes, for: "scope")
-				)
-			cache.set(
-				entry: cacheEntry,
-				for: .identifier(
-					of: Feature.self,
-					context: context
-				)
-			)
 		}
 
 		/// Replace parts of features.
@@ -672,14 +674,14 @@ extension Features {
 			with updated: Property,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: LoadableFeature {
+		) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Never> {
 			var cacheEntry: FeaturesCache.Entry =
 				self
 				.cache
 				.entry(
 					for: .identifier(
 						of: Feature.self,
-						context: void
+						context: TagFeatureContext<Never>.context
 					)
 				)
 				?? .init(
@@ -692,42 +694,44 @@ extension Features {
 					.with(self.scopes, for: "scope"),
 					removal: noop
 				)
-			guard var feature: Feature = cacheEntry.feature as? Feature
-			else {
-				InternalInconsistency
-					.error(message: "Feature is not matching expected type")
-					.with(self.scopes, for: "scope")
-					.with(Feature.self, for: "expected")
-					.with(type(of: cacheEntry.feature), for: "received")
-					.appending(
+			withExtendedLifetime(cacheEntry) {
+				guard var feature: Feature = cacheEntry.feature as? Feature
+				else {
+					InternalInconsistency
+						.error(message: "Feature is not matching expected type")
+						.with(self.scopes, for: "scope")
+						.with(Feature.self, for: "expected")
+						.with(type(of: cacheEntry.feature), for: "received")
+						.appending(
+							.message(
+								"FeatureLoader is invalid",
+								file: file,
+								line: line
+							)
+						)
+						.asFatalError()
+				}
+
+				feature[keyPath: keyPath] = updated
+				cacheEntry.feature = feature
+				cacheEntry
+					.debugContext
+					.append(
 						.message(
-							"FeatureLoader is invalid",
+							"Patched",
 							file: file,
 							line: line
 						)
+						.with(self.scopes, for: "scope")
 					)
-					.asFatalError()
+				self.cache.set(
+					entry: cacheEntry,
+					for: .identifier(
+						of: Feature.self,
+						context: TagFeatureContext<Never>.context
+					)
+				)
 			}
-
-			feature[keyPath: keyPath] = updated
-			cacheEntry.feature = feature
-			cacheEntry
-				.debugContext
-				.append(
-					.message(
-						"Patched",
-						file: file,
-						line: line
-					)
-					.with(self.scopes, for: "scope")
-				)
-			cache.set(
-				entry: cacheEntry,
-				for: .identifier(
-					of: Feature.self,
-					context: void
-				)
-			)
 		}
 
 		/// Check currently used implementation of feature.
