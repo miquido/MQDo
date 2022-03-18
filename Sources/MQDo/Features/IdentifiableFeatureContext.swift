@@ -24,7 +24,8 @@ public protocol IdentifiableFeatureContext {
 }
 
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
-extension IdentifiableFeatureContext where Self: Hashable {
+extension IdentifiableFeatureContext
+where Self: Hashable {
 
 	public var identifier: AnyHashable {
 		self as AnyHashable

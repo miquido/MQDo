@@ -22,7 +22,7 @@ let package = Package(
 		.package(
 			name: "MQ",
 			url: "https://github.com/miquido/MQ-iOS.git",
-			.upToNextMajor(from: "0.3.0")
+			.upToNextMajor(from: "0.4.0")
 		)
 	],
 	targets: [

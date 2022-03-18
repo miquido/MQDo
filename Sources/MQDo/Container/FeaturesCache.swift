@@ -22,7 +22,7 @@ extension FeaturesCache {
 			contextIdentifier: AnyHashable?
 		) {
 			self.featureType = featureType
-			self.typeIdentifier = ObjectIdentifier(featureType) as AnyHashable
+			self.typeIdentifier = featureType.identifier
 			self.contextIdentifier = contextIdentifier
 		}
 	}
@@ -56,85 +56,100 @@ extension FeaturesCache {
 		#endif
 	}
 
-	internal typealias Removal = (AnyFeature) throws -> Void
+	internal typealias Removal = (AnyFeature) -> Void
 }
 
 extension FeaturesCache {
 
-	internal mutating func set(
+	@MainActor internal mutating func set(
 		entry: Entry,
 		for key: Key
 	) {
+		// properly remove previous entry if any
+		if let previousEntry: Entry = self.cache[key] {
+			previousEntry.removal(previousEntry.feature)
+		}
+		else {
+			noop()
+		}
+
 		self.cache[key] = entry
 	}
 
 	#if DEBUG
-		internal func getDebugContext(
+		@MainActor internal func getDebugContext(
 			for key: Key
 		) -> SourceCodeContext? {
 			self.cache[key]?.debugContext
 		}
 	#endif
 
-	internal func entry(
-		for key: Key
-	) -> Entry? {
-		self.cache[key]
-	}
-
-	private func getFeature(
-		for key: Key
-	) -> AnyFeature? {
-		self.cache[key]?.feature
-	}
-
-	internal func get<Feature>(
-		_ featureType: Feature.Type,
-		context: Feature.Context
-	) -> Feature?
+	@MainActor internal func get<Feature>(
+		_ featureType: Feature.Type
+	) throws -> Feature?
 	where Feature: LoadableFeature {
-		guard
-			let cachedFeature: AnyFeature = self.getFeature(
-				for: .identifier(
-					of: featureType,
-					context: context
-				)
-			)
+		let key: Key = .identifier(
+			of: featureType,
+			context: void
+		)
+
+		guard let cachedFeature: AnyFeature = self.cache[key]?.feature
 		else { return .none }
 
 		if let feature: Feature = cachedFeature as? Feature {
 			return feature
 		}
 		else {
-			InternalInconsistency
-				.error(message: "Cached feature instance is not matching expected type")
+			throw
+				InternalInconsistency
+				.error(message: "Cached feature instance is not matching expected type, please report a bug.")
+				.with(cachedFeature, for: "cachedFeature")
+				.with(Feature.self, for: "feature")
+				.asAssertionFailure()
+		}
+	}
+
+	@MainActor internal func get<Feature>(
+		_ featureType: Feature.Type,
+		context: Feature.Context
+	) throws -> Feature?
+	where Feature: LoadableContextualFeature {
+		let key: Key = .identifier(
+			of: featureType,
+			context: context
+		)
+		guard let cachedFeature: AnyFeature = self.cache[key]?.feature
+		else { return .none }
+
+		if let feature: Feature = cachedFeature as? Feature {
+			return feature
+		}
+		else {
+			throw
+				InternalInconsistency
+				.error(message: "Cached feature instance is not matching expected type, please report a bug.")
 				.with(cachedFeature, for: "cachedFeature")
 				.with(Feature.self, for: "feature")
 				.with(context, for: "context")
-				.asFatalError()
+				.asAssertionFailure()
 		}
 	}
 
-	internal mutating func removeEntry(
-		for key: Key,
-		force: Bool = false  // remove entry on failure if true
-	) throws {
+	@MainActor internal mutating func removeEntry(
+		for key: Key
+	) {
 		guard let entry: Entry = self.cache[key]
 		else { return }
-		if force {
-			self.cache[key] = .none  // remove always
-			try entry.removal(entry.feature)
-		}
-		else {
-			try entry.removal(entry.feature)
-			self.cache[key] = .none  // remove only if not failed
-		}
+		entry.removal(entry.feature)
+		self.cache[key] = .none
 	}
 
-	internal mutating func clear() throws {
-		for key: FeaturesCache.Key in self.cache.keys {
-			try self.removeEntry(for: key)
+	// used only on deinit
+	nonisolated internal mutating func clear() {
+		for entry: FeaturesCache.Entry in self.cache.values {
+			entry.removal(entry.feature)
 		}
+		self.cache = .init()
 	}
 }
 

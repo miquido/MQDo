@@ -12,11 +12,10 @@ internal struct FeaturesFactory {
 extension FeaturesFactory {
 
 	@inline(__always)
-	internal func load<Feature>(
+	@MainActor internal func load<Feature>(
 		_ featureType: Feature.Type,
-		context: Feature.Context,
-		within features: Features,
-		cache: (FeaturesCache.Entry) -> Void,
+		using features: FeaturesContainer,
+		cache: @MainActor (FeaturesCache.Entry) -> Void,
 		file: StaticString,
 		line: UInt
 	) throws -> Feature
@@ -33,12 +32,9 @@ extension FeaturesFactory {
 
 			let feature: Feature =
 				try featureLoader
-				.load(
-					context: context,
-					within: features
-				)
+				.load(using: features)
 
-			if let cacheRemoval: FeaturesCache.Removal = featureLoader.cacheRemoval {
+			if let unload: FeaturesCache.Removal = featureLoader.featureUnload {
 				#if DEBUG
 					cache(
 						.init(
@@ -52,14 +48,14 @@ extension FeaturesFactory {
 										line: line
 									)
 								),
-							removal: cacheRemoval
+							removal: unload
 						)
 					)
 				#else
 					cache(
 						.init(
 							feature: feature,
-							removal: cacheRemoval
+							removal: unload
 						)
 					)
 				#endif
@@ -70,8 +66,8 @@ extension FeaturesFactory {
 
 			try featureLoader
 				.loadingCompletion(
-					feature: feature,
-					within: features
+					of: feature,
+					using: features
 				)
 
 			return feature
@@ -87,7 +83,83 @@ extension FeaturesFactory {
 						.asTheError()
 				)
 				.with(Feature.self, for: "feature")
-				.with(context, for: "context")
+		}
+	}
+
+	@inline(__always)
+	@MainActor internal func load<Feature>(
+		_ featureType: Feature.Type,
+		in context: Feature.Context,
+		using features: FeaturesContainer,
+		cache: @MainActor (FeaturesCache.Entry) -> Void,
+		file: StaticString,
+		line: UInt
+	) throws -> Feature
+	where Feature: LoadableContextualFeature {
+		do {
+			let featureLoader: FeatureLoader<Feature> =
+				try self
+				.registry
+				.loader(
+					for: featureType,
+					file: file,
+					line: line
+				)
+
+			let feature: Feature =
+				try featureLoader
+				.load(using: features, in: context)
+
+			if let unload: FeaturesCache.Removal = featureLoader.featureUnload {
+				#if DEBUG
+					cache(
+						.init(
+							feature: feature,
+							debugContext: featureLoader
+								.debugContext
+								.appending(
+									.message(
+										"Instance loaded",
+										file: file,
+										line: line
+									)
+								),
+							removal: unload
+						)
+					)
+				#else
+					cache(
+						.init(
+							feature: feature,
+							removal: unload
+						)
+					)
+				#endif
+			}
+			else {
+				noop()
+			}
+
+			try featureLoader
+				.loadingCompletion(
+					of: feature,
+					in: context,
+					using: features
+				)
+
+			return feature
+		}
+		catch {
+			throw
+				FeatureLoadingFailed
+				.error(
+					message: "Loading feature instance failed",
+					feature: Feature.self,
+					cause:
+						error
+						.asTheError()
+				)
+				.with(Feature.self, for: "feature")
 		}
 	}
 

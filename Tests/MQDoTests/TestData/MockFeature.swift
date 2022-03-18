@@ -5,23 +5,20 @@ struct MockFeature {
 	var mock: () -> Void
 	var mockInt: () -> Int
 	var mockString: () -> String
-	var mockThrowing: () throws -> Void
 }
 
-extension MockFeature: LoadableFeature {
+extension MockFeature: LoadableContextualFeature {
 
-	typealias Context = (
-		mockInt: Int,
-		mockString: String,
-		mockError: TheError
-	)
+  struct Context: IdentifiableFeatureContext, Hashable {
+		var mockInt: Int
+		var mockString: String
+  }
 
 	static var placeholder: Self {
 		Self(
 			mock: unimplemented(),
 			mockInt: unimplemented(),
-			mockString: unimplemented(),
-			mockThrowing: unimplemented()
+			mockString: unimplemented()
 		)
 	}
 
@@ -29,8 +26,7 @@ extension MockFeature: LoadableFeature {
 		.init(
 			mock: {},
 			mockInt: always(42),
-			mockString: always("mock"),
-			mockThrowing: alwaysThrowing(MockError.error())
+			mockString: always("mock")
 		)
 	}
 }
@@ -43,8 +39,7 @@ extension FeatureLoader where Feature == MockFeature {
 				Feature(
 					mock: noop,
 					mockInt: always(context.mockInt),
-					mockString: always(context.mockString),
-					mockThrowing: alwaysThrowing(context.mockError)
+					mockString: always(context.mockString)
 				)
 			}
 		)

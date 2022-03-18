@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.6
 import PackageDescription
 
 let package = Package(
@@ -6,9 +6,8 @@ let package = Package(
   platforms: [.macOS(.v11)],
   dependencies: [
     .package(
-      name: "swift-format",
       url: "https://github.com/apple/swift-format.git", 
-      .exact("0.50500.0")
+      exact: "0.50600.1"
     ),
   ],
   targets: [

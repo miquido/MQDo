@@ -3,12 +3,13 @@ import MQ
 /// Scoped registry of feature implementations.
 ///
 /// ``ScopedFeaturesRegistry`` is a container for defining feature implementations.
-/// It is used to associate concrete implementations with given feature interfaces.
-/// ``Features`` container initializes and forks with a scoped registry which defines
-/// features available through that container. ``ScopedFeaturesRegistry`` is strongly
+/// It is used to associate concrete implementations with a given feature interfaces.
+/// ``FeaturesContainer`` initializes and branches with a scoped registry which defines
+/// features available for that container branch. ``ScopedFeaturesRegistry`` is strongly
 /// associated with ``FeaturesScope`` which is used to distinguish available
 /// feature implementations for defined scopes preventing unwanted usage of features.
-public struct ScopedFeaturesRegistry<Scope> where Scope: FeaturesScope {
+public struct ScopedFeaturesRegistry<Scope>
+where Scope: FeaturesScope {
 
 	/// Typealias for functions used to adjust and setup
 	/// instances of ``ScopedFeaturesRegistry``.
@@ -18,7 +19,7 @@ public struct ScopedFeaturesRegistry<Scope> where Scope: FeaturesScope {
 
 	internal init(
 		scope: Scope.Type = Scope.self,
-		loaders: Set<AnyFeatureLoader> = .init()
+		loaders: Array<AnyFeatureLoader> = .init()
 	) {
 		self.registry = .init(loaders: loaders)
 	}
@@ -28,7 +29,7 @@ extension ScopedFeaturesRegistry {
 
 	/// Set implementation for a feature.
 	///
-	/// Associate provided ``FeatureLoader`` implementation with given feature.
+	/// Associate provided ``FeatureLoader`` implementation with given feature interface.
 	/// If there was already defined implementation for the same
 	/// feature it will be replaced with the new one.
 	///
@@ -37,9 +38,9 @@ extension ScopedFeaturesRegistry {
 	///   - loader: Loader aka implementation of a feature that will
 	///   be used in this registry.
 	public mutating func use<Feature>(
-		_ featureType: Feature.Type = Feature.self,
-		_ loader: FeatureLoader<Feature>
-	) where Feature: LoadableFeature {
+		_ loader: FeatureLoader<Feature>,
+		for featureType: Feature.Type = Feature.self
+	) where Feature: AnyFeature {
 		self.registry.use(loader: loader.asAnyLoader)
 	}
 
@@ -52,235 +53,15 @@ extension ScopedFeaturesRegistry {
 	/// - Parameter featureType: Type of feature.
 	public mutating func remove<Feature>(
 		_ featureType: Feature.Type
-	) where Feature: LoadableFeature {
+	) where Feature: AnyFeature {
 		self.registry.removeLoader(for: featureType)
-	}
-
-	/// Set implementation for a feature.
-	///
-	/// Associate provided implementation with given feature.
-	/// If there was already defined implementation for the same
-	/// feature it will be replaced with the new one.
-	///
-	/// This method is equivalent of ``FeatureLoader.lazyLoaded`` implementation.
-	///
-	/// - Parameters:
-	///   - featureType: Type of feature.
-	///   - implementation: Name of given implementation used to identify feature implementation.
-	///   By default it is name of a function enclosing invocation of this function.
-	///   - load: Function which produces new instances of given feature.
-	///   - loadingCompletion: Function allowing to execute initial operations after loading
-	///   instance of feature. It can be also used to resolve circular dependencies.
-	///   If loading completion fails (throws) then feature won't be cached
-	///   nor returned from container. Default implementation does nothing.
-	///   - cacheRemoval: Function called when instance of feature is going to be removed from cache.
-	///   If this function will be called whenever instance of given feature will be removed from a cache.
-	///   First instance of feature that will be created in given ``Features`` container will be cached.
-	///   - file: Source code file identifier used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	///   - line: Line in given source code file used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	public mutating func useLazy<Feature>(
-		_ featureType: Feature.Type = Feature.self,
-		implementation: StaticString = #function,
-		load: @escaping (Feature.Context, Features) throws -> Feature,
-		loadingCompletion: @escaping (Feature, Features) throws -> Void = noop,
-		cacheRemoval: @escaping (Feature) throws -> Void = noop,
-		file: StaticString = #fileID,
-		line: UInt = #line
-	) where Feature: LoadableFeature {
-		self.use(
-			featureType,
-			.lazyLoaded(
-				featureType,
-				implementation: implementation,
-				load: load,
-				loadingCompletion: loadingCompletion,
-				cacheRemoval: cacheRemoval,
-				file: file,
-				line: line
-			)
-		)
-	}
-
-	/// Set implementation for a feature.
-	///
-	/// Associate provided implementation with given feature.
-	/// If there was already defined implementation for the same
-	/// feature it will be replaced with the new one.
-	///
-	/// This method is equivalent of ``FeatureLoader.disposable`` implementation.
-	///
-	/// - Parameters:
-	///   - featureType: Type of feature.
-	///   - implementation: Name of given implementation used to identify feature implementation.
-	///   By default it is name of a function enclosing invocation of this function.
-	///   - load: Function which produces new instances of given feature.
-	///   - loadingCompletion: Function allowing to execute initial operations after loading
-	///   instance of feature. It can be also used to resolve circular dependencies.
-	///   Default implementation does nothing.
-	///   - file: Source code file identifier used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	///   - line: Line in given source code file used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	public mutating func useDisposable<Feature>(
-		_ featureType: Feature.Type = Feature.self,
-		implementation: StaticString = #function,
-		load: @escaping (Feature.Context, Features) throws -> Feature,
-		loadingCompletion: @escaping (Feature, Features) throws -> Void = noop,
-		file: StaticString = #fileID,
-		line: UInt = #line
-	) where Feature: LoadableFeature {
-		self.use(
-			featureType,
-			.disposable(
-				featureType,
-				implementation: implementation,
-				load: load,
-				loadingCompletion: loadingCompletion,
-				file: file,
-				line: line
-			)
-		)
-	}
-
-	/// Set implementation for a feature.
-	///
-	/// Associate provided implementation with given feature.
-	/// If there was already defined implementation for the same
-	/// feature it will be replaced with the new one.
-	///
-	/// This method is equivalent of ``FeatureLoader.lazyLoaded`` implementation.
-	///
-	/// - Parameters:
-	///   - featureType: Type of feature.
-	///   - implementation: Name of given implementation used to identify feature implementation.
-	///   By default it is name of a function enclosing invocation of this function.
-	///   - load: Function which produces new instances of given feature.
-	///   - loadingCompletion: Function allowing to execute initial operations after loading
-	///   instance of feature. It can be also used to resolve circular dependencies.
-	///   If loading completion fails (throws) then feature won't be cached
-	///   nor returned from container. Default implementation does nothing.
-	///   - cacheRemoval: Function called when instance of feature is going to be removed from cache.
-	///   If this function will be called whenever instance of given feature will be removed from a cache.
-	///   First instance of feature that will be created in given ``Features`` container will be cached.
-	///   - file: Source code file identifier used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	///   - line: Line in given source code file used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	public mutating func useLazy<Feature, Tag>(
-		_ featureType: Feature.Type = Feature.self,
-		implementation: StaticString = #function,
-		load: @escaping (Features) throws -> Feature,
-		loadingCompletion: @escaping (Feature, Features) throws -> Void = noop,
-		cacheRemoval: @escaping (Feature) throws -> Void = noop,
-		file: StaticString = #fileID,
-		line: UInt = #line
-	) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
-		self.use(
-			featureType,
-			.lazyLoaded(
-				featureType,
-				implementation: implementation,
-				load: load,
-				loadingCompletion: loadingCompletion,
-				cacheRemoval: cacheRemoval,
-				file: file,
-				line: line
-			)
-		)
-	}
-
-	/// Set implementation for a feature.
-	///
-	/// Associate provided implementation with given feature.
-	/// If there was already defined implementation for the same
-	/// feature it will be replaced with the new one.
-	///
-	/// This method is equivalent of ``FeatureLoader.disposable`` implementation.
-	///
-	/// - Parameters:
-	///   - featureType: Type of feature.
-	///   - implementation: Name of given implementation used to identify feature implementation.
-	///   By default it is name of a function enclosing invocation of this function.
-	///   - load: Function which produces new instances of given feature.
-	///   - loadingCompletion: Function allowing to execute initial operations after loading
-	///   instance of feature. It can be also used to resolve circular dependencies.
-	///   Default implementation does nothing.
-	///   - file: Source code file identifier used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	///   - line: Line in given source code file used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	public mutating func useDisposable<Feature, Tag>(
-		_ featureType: Feature.Type = Feature.self,
-		implementation: StaticString = #function,
-		load: @escaping (Features) throws -> Feature,
-		loadingCompletion: @escaping (Feature, Features) throws -> Void = noop,
-		file: StaticString = #fileID,
-		line: UInt = #line
-	) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
-		self.use(
-			featureType,
-			.disposable(
-				featureType,
-				implementation: implementation,
-				load: load,
-				loadingCompletion: loadingCompletion,
-				file: file,
-				line: line
-			)
-		)
-	}
-
-	/// Set implementation for a feature.
-	///
-	/// Associate provided feature instance with given feature.
-	/// If there was already defined implementation for the same
-	/// feature it will be replaced with the new one.
-	///
-	/// This method is equivalent of ``FeatureLoader.constant`` implementation.
-	///
-	/// - Note: Only features which ``Context`` is ``TagFeatureContext`` can be constants.
-	///
-	/// - Parameters:
-	///   - featureType: Type of feature.
-	///   - implementation: Name of given implementation used to identify feature implementation.
-	///   By default it is name of a function enclosing invocation of this function.
-	///   - instance: Instance of a feature to be used as its implementation. It is wrapped
-	///   by autoclosure to lazily initialize the instance. Feature will be initialized only on demand. The same instance will be used for all feature instance requests.
-	///   - loadingCompletion: Function allowing to execute initial operations after loading
-	///   instance of feature. This function will be called only once
-	///   after first request for the feature instance.
-	///   Default implementation does nothing.
-	///   - file: Source code file identifier used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	///   - line: Line in given source code file used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	public mutating func useConstant<Feature, Tag>(
-		_ featureType: Feature.Type = Feature.self,
-		implementation: StaticString = #function,
-		instance: @autoclosure @escaping () -> Feature,
-		loadingCompletion: @escaping (Feature) -> Void = noop,
-		file: StaticString = #fileID,
-		line: UInt = #line
-	) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
-		self.use(
-			Feature.self,
-			.constant(
-				Feature.self,
-				implementation: implementation,
-				instance: instance(),
-				loadingCompletion: loadingCompletion,
-				file: file,
-				line: line
-			)
-		)
 	}
 }
 
-extension ScopedFeaturesRegistry where Scope == RootFeaturesScope {
+extension ScopedFeaturesRegistry
+where Scope == RootFeaturesScope {
 
-	/// Define scope features for given scope.
+	/// Define new features scope within ``FeaturesContainer`` tree.
 	///
 	/// Register a scope to be used in this features container tree.
 	/// Registered scope has to define its features which will be available
@@ -301,9 +82,12 @@ extension ScopedFeaturesRegistry where Scope == RootFeaturesScope {
 		var registry: ScopedFeaturesRegistry<DefinedScope> = .init()
 		registrySetup(&registry)
 
-		self.useConstant(
-			instance: FeaturesRegistryForScope<DefinedScope>(
-				featuresRegistry: registry
+		self.use(
+			.constant(
+				FeaturesRegistryForScope<DefinedScope>.self,
+				instance: FeaturesRegistryForScope<DefinedScope>(
+					featuresRegistry: registry
+				)
 			)
 		)
 	}

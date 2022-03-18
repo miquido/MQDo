@@ -5,17 +5,15 @@ struct MockDependantFeature {
 	var mock: () -> Void
 	var mockInt: () -> Int
 	var mockString: () -> String
-	var mockThrowing: () throws -> Void
 }
 
-extension MockDependantFeature: ContextlessLoadableFeature {
+extension MockDependantFeature: LoadableFeature {
 
 	static var placeholder: Self {
 		Self(
 			mock: unimplemented(),
 			mockInt: unimplemented(),
-			mockString: unimplemented(),
-			mockThrowing: unimplemented()
+			mockString: unimplemented()
 		)
 	}
 
@@ -23,8 +21,7 @@ extension MockDependantFeature: ContextlessLoadableFeature {
 		.init(
 			mock: {},
 			mockInt: always(42),
-			mockString: always("mock"),
-			mockThrowing: alwaysThrowing(MockError.error())
+			mockString: always("mock")
 		)
 	}
 }
@@ -35,18 +32,16 @@ extension FeatureLoader where Feature == MockDependantFeature {
 		.lazyLoaded(
 			load: { features in
 				let mockFeature: MockFeature = try features.instance(
-					context: (
+          context: .init(
 						mockInt: 24,
-						mockString: "dependant",
-						mockError: MockError.error()
+						mockString: "dependant"
 					)
 				)
 
 				return Feature(
 					mock: mockFeature.mock,
 					mockInt: mockFeature.mockInt,
-					mockString: mockFeature.mockString,
-					mockThrowing: mockFeature.mockThrowing
+					mockString: mockFeature.mockString
 				)
 			}
 		)
