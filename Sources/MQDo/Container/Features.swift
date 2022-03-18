@@ -669,19 +669,19 @@ extension Features {
 		///   Filled automatically based on compile time constants.
 		///   - line: Line in given source code file used to track potential error.
 		///   Filled automatically based on compile time constants.
-		public func patch<Feature, Property>(
+		public func patch<Feature, Property, Tag>(
 			_ keyPath: WritableKeyPath<Feature, Property>,
 			with updated: Property,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Never> {
+		) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
 			var cacheEntry: FeaturesCache.Entry =
 				self
 				.cache
 				.entry(
 					for: .identifier(
 						of: Feature.self,
-						context: TagFeatureContext<Never>.context
+						context: TagFeatureContext<Tag>.context
 					)
 				)
 				?? .init(
@@ -728,7 +728,7 @@ extension Features {
 					entry: cacheEntry,
 					for: .identifier(
 						of: Feature.self,
-						context: TagFeatureContext<Never>.context
+						context: TagFeatureContext<Tag>.context
 					)
 				)
 			}
