@@ -9,7 +9,14 @@
 /// protocol in order to ensure described behavior.
 public struct TagFeatureContext<Tag> {
 
-	internal static var context: Self { .init() }
+	/// Get instance of ``TagFeatureContext`` with give ``Tag``.
+	///
+	/// You can use context instance as a placeholder
+	/// for feature context when using ``TaggedLoadableFeature``
+	/// or ``ContextlessLoadableFeature``.
+	/// All instances of the ``TagFeatureContext`` with
+	/// the same ``Tag`` type are treated as equal.
+	public static var context: Self { .init() }
 
 	private init() {}
 }
