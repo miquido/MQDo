@@ -16,7 +16,13 @@ let package = Package(
 			targets: [
 				"MQDo"
 			]
-		)
+		),
+    .library(
+      name: "MQDoTest",
+      targets: [
+        "MQDoTest"
+      ]
+    )
 	],
 	dependencies: [
 		.package(
@@ -38,6 +44,13 @@ let package = Package(
 				"MQDo"
 			]
 		),
+    .target(
+      name: "MQDoTest",
+      dependencies: [
+        "MQ",
+        "MQDo"
+      ]
+    ),
 	],
 	swiftLanguageVersions: [.v5]
 )
