@@ -270,6 +270,9 @@ extension Features {
 									var entry: FeaturesCache.Entry = entry
 									entry
 										.debugContext
+										.set(context, for: "context")
+									entry
+										.debugContext
 										.set(self.scopes, for: "scope")
 								#endif
 								cacheSnapshot.set(
@@ -302,6 +305,7 @@ extension Features {
 							throw
 								error
 								.asTheError()
+								.with(context, for: "context")
 								.with(self.scopes, for: "scope")
 								.with(self.branchDescription, for: "features")
 						}
@@ -317,6 +321,7 @@ extension Features {
 								throw
 									error
 									.asTheError()
+									.with(context, for: "context")
 									.with(self.scopes, for: "scope")
 									.with(self.branchDescription, for: "features")
 							}
@@ -324,6 +329,7 @@ extension Features {
 							throw
 								error
 								.asTheError()
+								.with(context, for: "context")
 								.with(self.scopes, for: "scope")
 								.with(self.branchDescription, for: "features")
 						#endif
@@ -333,6 +339,7 @@ extension Features {
 					throw
 						error
 						.asTheError()
+						.with(context, for: "context")
 						.with(self.scopes, for: "scope")
 						.with(self.branchDescription, for: "features")
 				}
@@ -593,62 +600,73 @@ extension Features {
 			file: StaticString = #fileID,
 			line: UInt = #line
 		) where Feature: LoadableFeature, Feature.Context: IdentifiableFeatureContext {
-			var cacheEntry: FeaturesCache.Entry =
-				self
-				.cache
-				.entry(
-					for: .identifier(
-						of: Feature.self,
-						context: context
-					)
-				)
-				?? .init(
-					feature: Feature.placeholder,
-					debugContext: .context(
-						message: "Placeholder",
-						file: file,
-						line: line
-					)
-					.with(self.scopes, for: "scope"),
-					removal: noop
-				)
-			withExtendedLifetime(cacheEntry) {
-				guard var feature: Feature = cacheEntry.feature as? Feature
-				else {
-					InternalInconsistency
-						.error(message: "Feature is not matching expected type")
-						.with(self.scopes, for: "scope")
-						.with(Feature.self, for: "expected")
-						.with(type(of: cacheEntry.feature), for: "received")
-						.appending(
-							.message(
-								"FeatureLoader is invalid",
-								file: file,
-								line: line
-							)
+			self.lock.withLock {
+				var cacheEntry: FeaturesCache.Entry =
+					self
+					.cache
+					.entry(
+						for: .identifier(
+							of: Feature.self,
+							context: context
 						)
-						.asFatalError()
-				}
-
-				feature[keyPath: keyPath] = updated
-				cacheEntry.feature = feature
-				cacheEntry
-					.debugContext
-					.append(
-						.message(
-							"Patched",
+					)
+					?? .init(
+						feature: Feature.placeholder,
+						debugContext: .context(
+							message: "Placeholder",
 							file: file,
 							line: line
 						)
-						.with(self.scopes, for: "scope")
+						.with(context, for: "context")
+						.with(self.scopes, for: "scope"),
+						removal: noop
 					)
-				cache.set(
-					entry: cacheEntry,
-					for: .identifier(
-						of: Feature.self,
-						context: context
-					)
-				)
+				withExtendedLifetime(cacheEntry) {
+					guard var feature: Feature = cacheEntry.feature as? Feature
+					else {
+						InternalInconsistency
+							.error(message: "Feature is not matching expected type")
+							.with(self.scopes, for: "scope")
+							.with(Feature.self, for: "expected")
+							.with(context, for: "context")
+							.with(type(of: cacheEntry.feature), for: "received")
+							.appending(
+								.message(
+									"FeatureLoader is invalid",
+									file: file,
+									line: line
+								)
+							)
+							.asFatalError()
+					}
+
+					withExtendedLifetime(feature) {
+						withExtendedLifetime(cacheEntry.feature) {
+							withExtendedLifetime(feature[keyPath: keyPath]) {
+								feature[keyPath: keyPath] = updated
+								cacheEntry.feature = feature
+								cacheEntry
+									.debugContext
+									.append(
+										.message(
+											"Patched",
+											file: file,
+											line: line
+										)
+										.with(context, for: "context")
+										.with(self.scopes, for: "scope")
+									)
+								cache.set(
+									entry: cacheEntry,
+									for: .identifier(
+										of: Feature.self,
+										context: context
+									)
+								)
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -675,62 +693,400 @@ extension Features {
 			file: StaticString = #fileID,
 			line: UInt = #line
 		) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
-			var cacheEntry: FeaturesCache.Entry =
-				self
-				.cache
-				.entry(
-					for: .identifier(
-						of: Feature.self,
-						context: TagFeatureContext<Tag>.context
-					)
-				)
-				?? .init(
-					feature: Feature.placeholder,
-					debugContext: .context(
-						message: "Placeholder",
-						file: file,
-						line: line
-					)
-					.with(self.scopes, for: "scope"),
-					removal: noop
-				)
-			withExtendedLifetime(cacheEntry) {
-				guard var feature: Feature = cacheEntry.feature as? Feature
-				else {
-					InternalInconsistency
-						.error(message: "Feature is not matching expected type")
-						.with(self.scopes, for: "scope")
-						.with(Feature.self, for: "expected")
-						.with(type(of: cacheEntry.feature), for: "received")
-						.appending(
-							.message(
-								"FeatureLoader is invalid",
-								file: file,
-								line: line
-							)
+			self.lock.withLock {
+				var cacheEntry: FeaturesCache.Entry =
+					self
+					.cache
+					.entry(
+						for: .identifier(
+							of: Feature.self,
+							context: TagFeatureContext<Tag>.context
 						)
-						.asFatalError()
-				}
-
-				feature[keyPath: keyPath] = updated
-				cacheEntry.feature = feature
-				cacheEntry
-					.debugContext
-					.append(
-						.message(
-							"Patched",
+					)
+					?? .init(
+						feature: Feature.placeholder,
+						debugContext: .context(
+							message: "Placeholder",
 							file: file,
 							line: line
 						)
-						.with(self.scopes, for: "scope")
+						.with(self.scopes, for: "scope"),
+						removal: noop
 					)
-				self.cache.set(
-					entry: cacheEntry,
-					for: .identifier(
-						of: Feature.self,
-						context: TagFeatureContext<Tag>.context
+				withExtendedLifetime(cacheEntry.feature) {
+					guard var feature: Feature = cacheEntry.feature as? Feature
+					else {
+						InternalInconsistency
+							.error(message: "Feature is not matching expected type")
+							.with(self.scopes, for: "scope")
+							.with(Feature.self, for: "expected")
+							.with(type(of: cacheEntry.feature), for: "received")
+							.appending(
+								.message(
+									"FeatureLoader is invalid",
+									file: file,
+									line: line
+								)
+							)
+							.asFatalError()
+					}
+
+					withExtendedLifetime(feature) {
+						withExtendedLifetime(cacheEntry.feature) {
+							withExtendedLifetime(feature[keyPath: keyPath]) {
+								feature[keyPath: keyPath] = updated
+								cacheEntry.feature = feature
+								cacheEntry
+									.debugContext
+									.append(
+										.message(
+											"Patched",
+											file: file,
+											line: line
+										)
+										.with(self.scopes, for: "scope")
+									)
+								self.cache.set(
+									entry: cacheEntry,
+									for: .identifier(
+										of: Feature.self,
+										context: TagFeatureContext<Tag>.context
+									)
+								)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		/// Replace parts of features.
+		///
+		/// Patch can be used to mock and replace selected parts of features.
+		/// If a feature is cached its current instance will be patched.
+		/// If a feature is not cached new instance from placeholder implementation
+		/// will be created, cached and patched instead.
+		///
+		/// - Note: Provided feature implementations will be ignored when patched
+		/// feature is not in cache.
+		///
+		/// - Parameters:
+		///   - keyPath: Key path in feature to be replaced.
+		///   - updated: Updated value of patched key path.
+		///   - file: Source code file identifier used to track potential error.
+		///   Filled automatically based on compile time constants.
+		///   - line: Line in given source code file used to track potential error.
+		///   Filled automatically based on compile time constants.
+		@_disfavoredOverload
+		public func patch<Feature, Property>(
+			_ keyPath: WritableKeyPath<Feature, Property>,
+			with updated: Property,
+			file: StaticString = #fileID,
+			line: UInt = #line
+		) where Feature: LoadableFeature {
+			self.lock.withLock {
+				var cacheEntry: FeaturesCache.Entry =
+					self
+					.cache
+					.entry(
+						for: .identifier(
+							of: Feature.self,
+							context: void
+						)
 					)
-				)
+					?? .init(
+						feature: Feature.placeholder,
+						debugContext: .context(
+							message: "Placeholder",
+							file: file,
+							line: line
+						)
+						.with(self.scopes, for: "scope"),
+						removal: noop
+					)
+				withExtendedLifetime(cacheEntry.feature) {
+					guard var feature: Feature = cacheEntry.feature as? Feature
+					else {
+						InternalInconsistency
+							.error(message: "Feature is not matching expected type")
+							.with(self.scopes, for: "scope")
+							.with(Feature.self, for: "expected")
+							.with(type(of: cacheEntry.feature), for: "received")
+							.appending(
+								.message(
+									"FeatureLoader is invalid",
+									file: file,
+									line: line
+								)
+							)
+							.asFatalError()
+					}
+					withExtendedLifetime(feature) {
+						withExtendedLifetime(cacheEntry.feature) {
+							withExtendedLifetime(feature[keyPath: keyPath]) {
+								feature[keyPath: keyPath] = updated
+								cacheEntry.feature = feature
+								cacheEntry
+									.debugContext
+									.append(
+										.message(
+											"Patched",
+											file: file,
+											line: line
+										)
+										.with(self.scopes, for: "scope")
+									)
+								self.cache.set(
+									entry: cacheEntry,
+									for: .identifier(
+										of: Feature.self,
+										context: void
+									)
+								)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// TODO: add docs
+		@available(*, unavailable)
+		public func patch<Feature, Property>(
+			_ keyPath: WritableKeyPath<Feature, Property>,
+			with updated: Property,
+			file: StaticString = #fileID,
+			line: UInt = #line
+		) where Feature: LoadableFeature, Feature.Context: IdentifiableFeatureContext {
+			unreachable("Method not available")
+		}
+
+		// TODO: add docs
+		@available(*, unavailable)
+		public func patch<Feature>(
+			_ featureType: Feature.Type,
+			with patching: (inout Feature) -> Void,
+			file: StaticString = #fileID,
+			line: UInt = #line
+		) where Feature: LoadableFeature, Feature.Context: IdentifiableFeatureContext {
+			unreachable("Method not available")
+		}
+
+		// TODO: add docs
+		public func patch<Feature>(
+			_ featureType: Feature.Type,
+			context: Feature.Context,
+			with patching: (inout Feature) -> Void,
+			file: StaticString = #fileID,
+			line: UInt = #line
+		) where Feature: LoadableFeature, Feature.Context: IdentifiableFeatureContext {
+			self.lock.withLock {
+				var cacheEntry: FeaturesCache.Entry =
+					self
+					.cache
+					.entry(
+						for: .identifier(
+							of: Feature.self,
+							context: context
+						)
+					)
+					?? .init(
+						feature: Feature.placeholder,
+						debugContext: .context(
+							message: "Placeholder",
+							file: file,
+							line: line
+						)
+						.with(context, for: "context")
+						.with(self.scopes, for: "scope"),
+						removal: noop
+					)
+				withExtendedLifetime(cacheEntry) {
+					guard var feature: Feature = cacheEntry.feature as? Feature
+					else {
+						InternalInconsistency
+							.error(message: "Feature is not matching expected type")
+							.with(self.scopes, for: "scope")
+							.with(Feature.self, for: "expected")
+							.with(context, for: "context")
+							.with(type(of: cacheEntry.feature), for: "received")
+							.appending(
+								.message(
+									"FeatureLoader is invalid",
+									file: file,
+									line: line
+								)
+							)
+							.asFatalError()
+					}
+					withExtendedLifetime(feature) {
+						withExtendedLifetime(cacheEntry.feature) {
+							patching(&feature)
+							cacheEntry.feature = feature
+							cacheEntry
+								.debugContext
+								.append(
+									.message(
+										"Patched",
+										file: file,
+										line: line
+									)
+									.with(context, for: "context")
+									.with(self.scopes, for: "scope")
+								)
+							cache.set(
+								entry: cacheEntry,
+								for: .identifier(
+									of: Feature.self,
+									context: context
+								)
+							)
+						}
+					}
+				}
+			}
+		}
+
+		// TODO: add docs
+		public func patch<Feature, Tag>(
+			_ featureType: Feature.Type,
+			with patching: (inout Feature) -> Void,
+			file: StaticString = #fileID,
+			line: UInt = #line
+		) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
+			self.lock.withLock {
+				var cacheEntry: FeaturesCache.Entry =
+					self
+					.cache
+					.entry(
+						for: .identifier(
+							of: Feature.self,
+							context: TagFeatureContext<Tag>.context
+						)
+					)
+					?? .init(
+						feature: Feature.placeholder,
+						debugContext: .context(
+							message: "Placeholder",
+							file: file,
+							line: line
+						)
+						.with(self.scopes, for: "scope"),
+						removal: noop
+					)
+				withExtendedLifetime(cacheEntry) {
+					guard var feature: Feature = cacheEntry.feature as? Feature
+					else {
+						InternalInconsistency
+							.error(message: "Feature is not matching expected type")
+							.with(self.scopes, for: "scope")
+							.with(Feature.self, for: "expected")
+							.with(type(of: cacheEntry.feature), for: "received")
+							.appending(
+								.message(
+									"FeatureLoader is invalid",
+									file: file,
+									line: line
+								)
+							)
+							.asFatalError()
+					}
+					withExtendedLifetime(feature) {
+						withExtendedLifetime(cacheEntry.feature) {
+							patching(&feature)
+							cacheEntry.feature = feature
+							cacheEntry
+								.debugContext
+								.append(
+									.message(
+										"Patched",
+										file: file,
+										line: line
+									)
+									.with(self.scopes, for: "scope")
+								)
+							cache.set(
+								entry: cacheEntry,
+								for: .identifier(
+									of: Feature.self,
+									context: TagFeatureContext<Tag>.context
+								)
+							)
+						}
+					}
+				}
+			}
+		}
+
+		// TODO: add docs
+		@_disfavoredOverload
+		public func patch<Feature>(
+			_ featureType: Feature.Type,
+			with patching: (inout Feature) -> Void,
+			file: StaticString = #fileID,
+			line: UInt = #line
+		) where Feature: LoadableFeature {
+			self.lock.withLock {
+				var cacheEntry: FeaturesCache.Entry =
+					self
+					.cache
+					.entry(
+						for: .identifier(
+							of: Feature.self,
+							context: void
+						)
+					)
+					?? .init(
+						feature: Feature.placeholder,
+						debugContext: .context(
+							message: "Placeholder",
+							file: file,
+							line: line
+						)
+						.with(self.scopes, for: "scope"),
+						removal: noop
+					)
+				withExtendedLifetime(cacheEntry) {
+					guard var feature: Feature = cacheEntry.feature as? Feature
+					else {
+						InternalInconsistency
+							.error(message: "Feature is not matching expected type")
+							.with(self.scopes, for: "scope")
+							.with(Feature.self, for: "expected")
+							.with(type(of: cacheEntry.feature), for: "received")
+							.appending(
+								.message(
+									"FeatureLoader is invalid",
+									file: file,
+									line: line
+								)
+							)
+							.asFatalError()
+					}
+					withExtendedLifetime(feature) {
+						withExtendedLifetime(cacheEntry.feature) {
+							patching(&feature)
+							cacheEntry.feature = feature
+							cacheEntry
+								.debugContext
+								.append(
+									.message(
+										"Patched",
+										file: file,
+										line: line
+									)
+									.with(self.scopes, for: "scope")
+								)
+							cache.set(
+								entry: cacheEntry,
+								for: .identifier(
+									of: Feature.self,
+									context: void
+								)
+							)
+						}
+					}
+				}
 			}
 		}
 
