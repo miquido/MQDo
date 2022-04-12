@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.6
 import PackageDescription
 
 let package = Package(
@@ -20,7 +20,6 @@ let package = Package(
 	],
 	dependencies: [
 		.package(
-			name: "MQ",
 			url: "https://github.com/miquido/MQ-iOS.git",
 			.upToNextMajor(from: "0.3.0")
 		)
@@ -29,7 +28,10 @@ let package = Package(
 		.target(
 			name: "MQDo",
 			dependencies: [
-				"MQ"
+				.product(
+					name: "MQ",
+					package: "MQ-iOS"
+				)
 			]
 		),
 		.testTarget(
