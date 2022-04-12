@@ -35,10 +35,18 @@ public protocol AnyFeature {}
 
 extension AnyFeature {
 
-	// Internally used identifier of feature types.
-	internal typealias Identifier = AnyHashable
+	// Internal identifier for feature types.
+	internal typealias TypeIdentifier = AnyHashable
 
-	internal static var identifier: Identifier {
+	internal static var typeIdentifier: TypeIdentifier {
 		ObjectIdentifier(Self.self)
+	}
+
+	internal static var typeDescription: String {
+		"\(Self.self)"
+	}
+
+	internal var typeDescription: String {
+		Self.typeDescription
 	}
 }

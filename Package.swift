@@ -21,7 +21,7 @@ let package = Package(
 	dependencies: [
 		.package(
 			url: "https://github.com/miquido/MQ-iOS.git",
-			.upToNextMajor(from: "0.3.0")
+			.upToNextMajor(from: "0.4.0")
 		)
 	],
 	targets: [
@@ -30,7 +30,7 @@ let package = Package(
 			dependencies: [
 				.product(
 					name: "MQ",
-					package: "MQ-iOS"
+					package: "mq-ios"
 				)
 			]
 		),

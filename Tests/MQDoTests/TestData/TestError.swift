@@ -1,9 +1,9 @@
 import MQ
 
-struct MockError: TheError {
+struct TestError: TheError {
 
 	static func error(
-		message: StaticString = "MockError",
+		message: StaticString = "TestError",
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self {

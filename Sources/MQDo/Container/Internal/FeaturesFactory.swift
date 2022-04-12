@@ -27,18 +27,19 @@ extension FeaturesFactory {
 				.registry
 				.loader(
 					for: featureType,
+					context: context,
 					file: file,
 					line: line
 				)
 
 			let feature: Feature =
 				try featureLoader
-				.load(
+				.loadInstance(
 					context: context,
-					within: features
+					features: features
 				)
 
-			if let cacheRemoval: FeaturesCache.Removal = featureLoader.cacheRemoval {
+			if let unload: LoadableFeatureLoader.Unload = featureLoader.erasedUnload {
 				#if DEBUG
 					cache(
 						.init(
@@ -51,15 +52,16 @@ extension FeaturesFactory {
 										file: file,
 										line: line
 									)
+									.with(context, for: "context")
 								),
-							removal: cacheRemoval
+							removal: unload
 						)
 					)
 				#else
 					cache(
 						.init(
 							feature: feature,
-							removal: cacheRemoval
+							removal: unload
 						)
 					)
 				#endif
@@ -68,10 +70,11 @@ extension FeaturesFactory {
 				noop()
 			}
 
-			try featureLoader
-				.loadingCompletion(
-					feature: feature,
-					within: features
+			featureLoader
+				.instanceLoadingCompletion(
+					feature,
+					context: context,
+					features: features
 				)
 
 			return feature
@@ -93,10 +96,15 @@ extension FeaturesFactory {
 
 	#if DEBUG
 		@inline(__always)
-		internal func loaderDebugContext(
-			for featureType: AnyFeature.Type
-		) -> SourceCodeContext? {
-			self.registry.debugContext(for: featureType)
+		internal func loaderDebugContext<Feature>(
+			for featureType: Feature.Type,
+			context: Feature.Context
+		) -> SourceCodeContext?
+		where Feature: LoadableFeature {
+			self.registry.debugContext(
+				for: featureType,
+				context: context
+			)
 		}
 	#endif
 }
