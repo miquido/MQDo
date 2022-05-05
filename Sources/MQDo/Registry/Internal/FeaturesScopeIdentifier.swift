@@ -11,6 +11,8 @@ internal struct FeaturesScopeIdentifier {
 	}
 }
 
+extension FeaturesScopeIdentifier: LoadableFeatureContext {}
+
 extension FeaturesScopeIdentifier: Hashable {
 
 	internal static func == (
@@ -46,9 +48,7 @@ extension FeaturesScopeIdentifier: CustomLeafReflectable {
 	internal var customMirror: Mirror {
 		.init(
 			self,
-			children: [
-				"Scope": self.scope
-			],
+			children: [],
 			displayStyle: .none
 		)
 	}

@@ -1,12 +1,11 @@
 /// Feature context allowing to distinguish instances of the same feature type.
 ///
-/// ``IdentifiableFeatureContext`` is a type of feature context
-/// which allows to distinguish two feature instances of the exact same type
-/// by its context value. Any feature context not conforming to this protocol won't
-/// distinguish two instances of feature. Two features of the same type which
-/// context conform to this protocol and its value identifiers are not equal
+/// ``LoadableFeatureContext`` is a type used for defining
+/// contexts for features. It allows to distinguish two feature
+/// instances of the exact same type by its context value.
+/// Two features of the same type which has different context identifiers
 /// are treated as separate features similarly to those of different type.
-public protocol IdentifiableFeatureContext {
+public protocol LoadableFeatureContext {
 
 	/// Identifier used to distinguish contexts of a feature.
 	///
@@ -14,7 +13,7 @@ public protocol IdentifiableFeatureContext {
 	/// Its value cannot change over time and should be different for values that are
 	/// expected to distinguish feature instances.
 	///
-	/// If the type conforming to ``IdentifiableFeatureContext`` is itself ``Hashable``
+	/// If the type conforming to ``AnyFeatureContext`` is itself ``Hashable``
 	/// default implementation of this property uses it to provide this property value.
 	///
 	/// - Warning: Value of ``identifier`` should not change over time.
@@ -24,9 +23,24 @@ public protocol IdentifiableFeatureContext {
 }
 
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
-extension IdentifiableFeatureContext where Self: Hashable {
+extension LoadableFeatureContext where Self: Hashable {
 
 	public var identifier: AnyHashable {
 		self as AnyHashable
+	}
+}
+
+extension LoadableFeatureContext {
+
+	internal static var typeDescription: String {
+		"\(Self.self)"
+	}
+
+	internal var typeDescription: String {
+		Self.typeDescription
+	}
+
+	internal var description: String {
+		"\(self)"  // it will use CustomStringConvertible if able
 	}
 }

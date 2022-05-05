@@ -1,16 +1,14 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "MQ",
-        "repositoryURL": "https://github.com/miquido/MQ-iOS.git",
-        "state": {
-          "branch": null,
-          "revision": "39548729b07fd67cace3b37ddb3ac28842989efa",
-          "version": "0.3.0"
-        }
+  "pins" : [
+    {
+      "identity" : "mq-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/miquido/MQ-iOS.git",
+      "state" : {
+        "revision" : "590726bf17859cb6ed18e90909f540cd4b2daa2d",
+        "version" : "0.4.0"
       }
-    ]
-  },
-  "version": 1
+    }
+  ],
+  "version" : 2
 }

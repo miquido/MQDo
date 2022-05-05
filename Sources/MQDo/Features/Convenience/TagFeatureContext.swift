@@ -3,10 +3,7 @@
 /// ``TagFeatureContext`` is a type of feature context
 /// which allows to distinguish two feature types based on context type
 /// while ignoring context value. ``Tag`` type will be used only as a phantom type
-/// to distinguish types but its value (if any) will be ignored when accessing features.
-///
-/// ``TagFeatureContext`` is conforming to ``IdentifiableFeatureContext``
-/// protocol in order to ensure described behavior.
+/// to distinguish types but its value will be ignored when accessing features.
 public struct TagFeatureContext<Tag> {
 
 	/// Get instance of ``TagFeatureContext`` with give ``Tag``.
@@ -22,7 +19,7 @@ public struct TagFeatureContext<Tag> {
 }
 
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
-extension TagFeatureContext: IdentifiableFeatureContext {
+extension TagFeatureContext: LoadableFeatureContext {
 
 	public var identifier: AnyHashable {
 		ObjectIdentifier(Self.self)
