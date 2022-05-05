@@ -215,7 +215,7 @@ extension FeatureLoader {
 			)
 		#else
 			return Self(
-				from: AnyFeatureLoader(
+				from: LoadableFeatureLoader(
 					identifier: .init(
 						featureType: Feature.self,
 						contextSpecifier: contextSpecifier
@@ -366,7 +366,7 @@ extension FeatureLoader {
 			)
 		#else
 			return Self(
-				from: AnyFeatureLoader(
+				from: LoadableFeatureLoader(
 					identifier: .init(
 						featureType: Feature.self,
 						contextSpecifier: contextSpecifier
@@ -443,7 +443,7 @@ extension FeatureLoader {
 			)
 		#else
 			return Self(
-				from: AnyFeatureLoader(
+				from: LoadableFeatureLoader(
 					identifier: .init(
 						featureType: Feature.self,
 						contextSpecifier: contextSpecifier
@@ -566,7 +566,7 @@ extension FeatureLoader {
 			)
 		#else
 			return Self(
-				from: AnyFeatureLoader(
+				from: LoadableFeatureLoader(
 					identifier: .init(
 						featureType: Feature.self,
 						contextSpecifier: .context
@@ -660,7 +660,7 @@ extension FeatureLoader {
 			)
 		#else
 			return Self(
-				from: AnyFeatureLoader(
+				from: LoadableFeatureLoader(
 					identifier: .init(
 						featureType: Feature.self,
 						contextSpecifier: .context
@@ -732,7 +732,7 @@ extension FeatureLoader {
 			)
 		#else
 			return Self(
-				from: AnyFeatureLoader(
+				from: LoadableFeatureLoader(
 					identifier: .init(
 						featureType: Feature.self,
 						contextSpecifier: .context
