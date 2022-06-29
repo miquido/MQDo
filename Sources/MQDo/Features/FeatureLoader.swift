@@ -82,15 +82,16 @@ extension FeatureLoader {
 		_ featureType: Feature.Type = Feature.self,
 		contextSpecifier: Feature.Context? = .none,
 		implementation: StaticString = #function,
-		load: @escaping (_ context: Feature.Context, _ container: Features) throws -> Feature,
-		loadingCompletion: @escaping (_ instance: Feature, _ context: Feature.Context, _ container: Features) -> Void =
+		load: @escaping @MainActor (_ context: Feature.Context, _ container: Features) throws -> Feature,
+		loadingCompletion: @escaping @MainActor (_ instance: Feature, _ context: Feature.Context, _ container: Features) ->
+			Void =
 			noop,
 		unload: @escaping (_ instance: Feature) -> Void = noop,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
 	where Feature: LoadableFeature {
-		func featureLoad(
+		@MainActor func featureLoad(
 			context: LoadableFeatureContext,
 			using features: Features
 		) throws -> AnyFeature {
@@ -131,7 +132,7 @@ extension FeatureLoader {
 			return try load(context, features)
 		}
 
-		func featureLoadingCompletion(
+		@MainActor func featureLoadingCompletion(
 			_ feature: AnyFeature,
 			context: LoadableFeatureContext,
 			using features: Features
@@ -256,14 +257,15 @@ extension FeatureLoader {
 		_ featureType: Feature.Type = Feature.self,
 		contextSpecifier: Feature.Context? = .none,
 		implementation: StaticString = #function,
-		load: @escaping (_ context: Feature.Context, _ container: Features) throws -> Feature,
-		loadingCompletion: @escaping (_ instance: Feature, _ context: Feature.Context, _ container: Features) -> Void =
+		load: @escaping @MainActor (_ context: Feature.Context, _ container: Features) throws -> Feature,
+		loadingCompletion: @escaping @MainActor (_ instance: Feature, _ context: Feature.Context, _ container: Features) ->
+			Void =
 			noop,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
 	where Feature: LoadableFeature {
-		func featureLoad(
+		@MainActor func featureLoad(
 			context: LoadableFeatureContext,
 			using features: Features
 		) throws -> AnyFeature {
@@ -304,7 +306,7 @@ extension FeatureLoader {
 			return try load(context, features)
 		}
 
-		func featureLoadingCompletion(
+		@MainActor func featureLoadingCompletion(
 			_ feature: AnyFeature,
 			context: LoadableFeatureContext,
 			using features: Features
@@ -484,21 +486,21 @@ extension FeatureLoader {
 	public static func lazyLoaded<Tag>(
 		_ featureType: Feature.Type = Feature.self,
 		implementation: StaticString = #function,
-		load: @escaping (_ container: Features) throws -> Feature,
-		loadingCompletion: @escaping (_ instance: Feature, _ container: Features) -> Void = noop,
+		load: @escaping @MainActor (_ container: Features) throws -> Feature,
+		loadingCompletion: @escaping @MainActor (_ instance: Feature, _ container: Features) -> Void = noop,
 		unload: @escaping (_ instance: Feature) -> Void = noop,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
 	where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
-		func featureLoad(
+		@MainActor func featureLoad(
 			context _: LoadableFeatureContext,  // placeholder
 			using features: Features
 		) throws -> AnyFeature {
 			try load(features)
 		}
 
-		func featureLoadingCompletion(
+		@MainActor func featureLoadingCompletion(
 			_ feature: AnyFeature,
 			context _: LoadableFeatureContext,  // placeholder
 			using features: Features
@@ -601,20 +603,20 @@ extension FeatureLoader {
 	public static func disposable<Tag>(
 		_ featureType: Feature.Type = Feature.self,
 		implementation: StaticString = #function,
-		load: @escaping (_ container: Features) throws -> Feature,
-		loadingCompletion: @escaping (_ instance: Feature, _ container: Features) -> Void = noop,
+		load: @escaping @MainActor (_ container: Features) throws -> Feature,
+		loadingCompletion: @escaping @MainActor (_ instance: Feature, _ container: Features) -> Void = noop,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
 	where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
-		func featureLoad(
+		@MainActor func featureLoad(
 			context _: LoadableFeatureContext,  // placeholder
 			using features: Features
 		) throws -> AnyFeature {
 			try load(features)
 		}
 
-		func featureLoadingCompletion(
+		@MainActor func featureLoadingCompletion(
 			_ feature: AnyFeature,
 			context _: LoadableFeatureContext,  // placeholder
 			using features: Features
@@ -754,7 +756,7 @@ extension FeatureLoader {
 	}
 
 	@inline(__always)
-	internal func loadInstance(
+	@MainActor internal func loadInstance(
 		context: Feature.Context,
 		features: Features
 	) throws -> Feature
@@ -775,7 +777,7 @@ extension FeatureLoader {
 	}
 
 	@inline(__always)
-	internal func instanceLoadingCompletion(
+	@MainActor internal func instanceLoadingCompletion(
 		_ instance: Feature,
 		context: Feature.Context,
 		features: Features

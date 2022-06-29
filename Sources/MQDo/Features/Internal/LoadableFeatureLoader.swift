@@ -3,8 +3,8 @@ import MQ
 internal struct LoadableFeatureLoader {
 
 	internal typealias Identifier = LoadableFeatureLoaderIdentifier
-	internal typealias Load = (_ context: LoadableFeatureContext, _ container: Features) throws -> AnyFeature
-	internal typealias LoadingCompletion = (
+	internal typealias Load = @MainActor (_ context: LoadableFeatureContext, _ container: Features) throws -> AnyFeature
+	internal typealias LoadingCompletion = @MainActor (
 		_ instance: AnyFeature, _ context: LoadableFeatureContext, _ container: Features
 	)
 		-> Void

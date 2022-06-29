@@ -12,7 +12,7 @@ internal struct FeaturesFactory {
 extension FeaturesFactory {
 
 	@inline(__always)
-	internal func load<Feature>(
+	@MainActor internal func load<Feature>(
 		_ featureType: Feature.Type,
 		context: Feature.Context,
 		within features: Features,

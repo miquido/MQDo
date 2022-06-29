@@ -16,6 +16,8 @@ where Scope: FeaturesScope {
 	public typealias SetupFunction = (inout ScopedFeaturesRegistry<Scope>) -> Void
 
 	internal private(set) var registry: FeaturesRegistry
+	// to be used only for RootRegistry
+	private var scopesFeatures: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry> = .init()
 
 	internal init(
 		scope: Scope.Type = Scope.self,
@@ -100,14 +102,10 @@ where Scope == RootFeaturesScope {
 		var scopeRegistry: ScopedFeaturesRegistry<DefinedScope> = .init()
 		registrySetup(&scopeRegistry)
 
-		self.use(
-			.constant(
-				ScopeFeaturesRegistry.self,
-				contextSpecifier: scope.identifier,
-				instance: ScopeFeaturesRegistry(
-					featuresRegistry: scopeRegistry.registry
-				)
-			)
-		)
+		self.scopesFeatures[DefinedScope.identifier] = scopeRegistry.registry
+	}
+
+	internal var scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry> {
+		self.scopesFeatures
 	}
 }

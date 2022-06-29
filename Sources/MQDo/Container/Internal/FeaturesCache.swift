@@ -1,11 +1,18 @@
 import MQ
 
-internal struct FeaturesCache {
+internal final class FeaturesCache {
 
-	private var cache: Dictionary<Key, Entry>
+	@MainActor private var cache: Dictionary<Key, Entry>
 
-	internal init() {
+	internal nonisolated init() {
 		self.cache = .init()
+	}
+
+	deinit {
+		// ensure proper unloading of features
+		for entry: FeaturesCache.Entry in self.cache.values {
+			entry.removal(entry.feature)
+		}
 	}
 }
 
@@ -47,13 +54,13 @@ extension FeaturesCache {
 
 extension FeaturesCache {
 
-	internal mutating func getEntry(
+	@MainActor internal func getEntry(
 		for key: Key
 	) -> Entry? {
 		self.cache[key]
 	}
 
-	internal mutating func set(
+	@MainActor internal func set(
 		entry: Entry,
 		for key: Key
 	) {
@@ -69,14 +76,14 @@ extension FeaturesCache {
 	}
 
 	#if DEBUG
-		internal func getDebugContext(
+		@MainActor internal func getDebugContext(
 			for key: Key
 		) -> SourceCodeContext? {
 			self.cache[key]?.debugContext
 		}
 	#endif
 
-	internal func get<Feature>(
+	@MainActor internal func get<Feature>(
 		_ featureType: Feature.Type,
 		context: Feature.Context
 	) throws -> Feature?
@@ -102,7 +109,7 @@ extension FeaturesCache {
 		}
 	}
 
-	internal mutating func removeEntry(
+	@MainActor internal func removeEntry(
 		for key: Key
 	) {
 		guard let entry: Entry = self.cache[key]
@@ -112,7 +119,7 @@ extension FeaturesCache {
 		entry.removal(entry.feature)
 	}
 
-	internal mutating func clear() {
+	@MainActor internal func clear() {
 		for entry: FeaturesCache.Entry in self.cache.values {
 			entry.removal(entry.feature)
 		}
@@ -122,7 +129,7 @@ extension FeaturesCache {
 
 extension FeaturesCache.Key {
 
-	internal static func key<Feature>(
+	@MainActor internal static func key<Feature>(
 		for featureType: Feature.Type,
 		context: Feature.Context
 	) -> Self
