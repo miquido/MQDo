@@ -1,9 +1,9 @@
-internal struct LoadableFeatureLoaderIdentifier {
+internal struct LoadableFeatureLoaderIdentifier: Sendable {
 
 	internal let typeIdentifier: AnyFeature.TypeIdentifier
 	internal let typeDescription: String
 	internal let contextDescription: String
-	private let contextIdentifier: AnyHashable?
+	private let contextIdentifier: AnyLoadableFeatureContextIdentifier?
 
 	internal init<Feature>(
 		featureType: Feature.Type,
@@ -14,7 +14,7 @@ internal struct LoadableFeatureLoaderIdentifier {
 		self.typeIdentifier = featureType.typeIdentifier
 		self.typeDescription = featureType.typeDescription
 		self.contextDescription = contextSpecifier?.description ?? "none"
-		self.contextIdentifier = contextSpecifier?.identifier
+		self.contextIdentifier = contextSpecifier?.erasedIdentifier
 	}
 }
 
@@ -46,6 +46,6 @@ extension LoadableFeatureLoaderIdentifier {
 	) -> Bool
 	where Feature: LoadableFeature {
 		self.typeIdentifier == featureType.typeIdentifier
-			&& self.contextIdentifier.map { $0 == contextSpecifier.identifier } ?? true
+			&& self.contextIdentifier.map { $0 == contextSpecifier.erasedIdentifier } ?? true
 	}
 }

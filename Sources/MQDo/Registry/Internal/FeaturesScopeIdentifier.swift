@@ -1,4 +1,4 @@
-internal struct FeaturesScopeIdentifier {
+internal struct FeaturesScopeIdentifier: Sendable {
 
 	internal let scope: FeaturesScope.Type
 	private let identifier: ObjectIdentifier
@@ -11,7 +11,7 @@ internal struct FeaturesScopeIdentifier {
 	}
 }
 
-extension FeaturesScopeIdentifier: LoadableFeatureContext {}
+//extension FeaturesScopeIdentifier: LoadableFeatureContext {}
 
 extension FeaturesScopeIdentifier: Hashable {
 

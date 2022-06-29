@@ -7,6 +7,8 @@
 /// are treated as separate features similarly to those of different type.
 public protocol LoadableFeatureContext {
 
+	associatedtype Identifier: Hashable & Sendable
+
 	/// Identifier used to distinguish contexts of a feature.
 	///
 	/// Feature distinction for the same type of feature is made by using this property.
@@ -19,14 +21,14 @@ public protocol LoadableFeatureContext {
 	/// - Warning: Value of ``identifier`` should not change over time.
 	/// Once the context becomes initialized it should be constant for its lifetime.
 	/// Changing it might result in undefined behavior.
-	var identifier: AnyHashable { get }
+	var identifier: Identifier { get }
 }
 
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
-extension LoadableFeatureContext where Self: Hashable {
+extension LoadableFeatureContext where Self: Hashable & Sendable {
 
-	public var identifier: AnyHashable {
-		self as AnyHashable
+	public var identifier: Self {
+		self
 	}
 }
 
@@ -42,5 +44,9 @@ extension LoadableFeatureContext {
 
 	internal var description: String {
 		"\(self)"  // it will use CustomStringConvertible if able
+	}
+
+	internal var erasedIdentifier: AnyLoadableFeatureContextIdentifier {
+		.init(self.identifier)
 	}
 }

@@ -16,6 +16,8 @@ where Scope: FeaturesScope {
 	public typealias SetupFunction = (inout ScopedFeaturesRegistry<Scope>) -> Void
 
 	internal private(set) var registry: FeaturesRegistry
+	// to be used only by RootRegistry
+	private var scopesFeatures: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry> = .init()
 
 	internal init(
 		scope: Scope.Type = Scope.self,
@@ -43,9 +45,12 @@ extension ScopedFeaturesRegistry {
 	/// If there was already defined implementation for the same
 	/// feature it will be replaced with the new one.
 	///
-	/// - Parameter loader: Loader aka implementation of a feature that will
+	/// - Parameters
+	/// - featureType: Type of registered feature.
+	///  - loader: Loader aka implementation of a feature that will
 	///   be used in this registry
 	public mutating func use<Feature>(
+		_ featureType: Feature.Type = Feature.self,
 		_ loader: FeatureLoader<Feature>
 	) where Feature: AnyFeature {
 		self.registry.use(loader: loader.asAnyLoader)
@@ -94,20 +99,16 @@ where Scope == RootFeaturesScope {
 	///   - scope: Features scope which will be defined.
 	///   - registrySetup: Function used to setup the scope feature implementations.
 	public mutating func defineScope<DefinedScope>(
-		_ scope: DefinedScope.Type = DefinedScope.self,
+		_ scope: DefinedScope.Type,
 		registrySetup: ScopedFeaturesRegistry<DefinedScope>.SetupFunction
 	) where DefinedScope: FeaturesScope {
 		var scopeRegistry: ScopedFeaturesRegistry<DefinedScope> = .init()
 		registrySetup(&scopeRegistry)
 
-		self.use(
-			.constant(
-				ScopeFeaturesRegistry.self,
-				contextSpecifier: scope.identifier,
-				instance: ScopeFeaturesRegistry(
-					featuresRegistry: scopeRegistry.registry
-				)
-			)
-		)
+		self.scopesFeatures[DefinedScope.identifier] = scopeRegistry.registry
+	}
+
+	internal var scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry> {
+		self.scopesFeatures
 	}
 }

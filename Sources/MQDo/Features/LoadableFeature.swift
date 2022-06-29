@@ -41,6 +41,26 @@ public protocol LoadableFeature: AnyFeature {
 	/// ``ContextlessLoadableFeature`` protocol which is a shortcut for implementing
 	/// it without additional boilerplate code.
 	associatedtype Context: LoadableFeatureContext
+
+	#if DEBUG
+		/// Placeholder instance.
+		///
+		/// Placeholder can be used to create instance of
+		/// missing features when instance is required
+		/// but never used. It can be also used as a base
+		/// for preparing mocks in unit tests. When using
+		/// ``TestingScope`` (aka testing ``Features`` container)
+		/// placeholder instances are automatically created for
+		/// missing features.
+		///
+		/// Placeholder instance should either use some default,
+		/// immutable values and behaviors or (which is preferred)
+		/// crash on any use except creating instance.
+		///
+		/// Note: Placeholder implementation should not be
+		/// available in release builds.
+		static var placeholder: Self { get }
+	#endif
 }
 
 extension LoadableFeature {
@@ -48,7 +68,7 @@ extension LoadableFeature {
 	// Internal identifier for loadable feature loaders.
 	internal typealias LoaderIdentifier = LoadableFeatureLoaderIdentifier
 
-	internal static func loaderIdentifier(
+	@Sendable internal static func loaderIdentifier(
 		contextSpecifier: Context?
 	) -> LoaderIdentifier {
 		.loaderIdentifier(
@@ -63,7 +83,7 @@ extension LoadableFeature {
 	// Internal identifier for loadable features instances.
 	internal typealias InstanceIdentifier = LoadableFeatureInstanceIdentifier
 
-	internal static func instanceIdentifier(
+	@Sendable internal static func instanceIdentifier(
 		context: Context
 	) -> InstanceIdentifier {
 		.instanceIdentifier(
