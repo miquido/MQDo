@@ -11,9 +11,9 @@ internal struct FeaturesCache {
 
 extension FeaturesCache {
 
-	internal typealias Key = LoadableFeatureInstanceIdentifier
+	internal typealias Key = DynamicFeatureInstanceIdentifier
 
-	internal typealias Removal = (AnyFeature) -> Void
+	internal typealias Removal = @Sendable (AnyFeature) -> Void
 
 	internal struct Entry {
 
@@ -47,7 +47,7 @@ extension FeaturesCache {
 
 extension FeaturesCache {
 
-	internal mutating func getEntry(
+	internal func getEntry(
 		for key: Key
 	) -> Entry? {
 		self.cache[key]
@@ -60,10 +60,7 @@ extension FeaturesCache {
 		// properly remove previous entry if any
 		if let previousEntry: Entry = self.cache[key] {
 			previousEntry.removal(previousEntry.feature)
-		}
-		else {
-			noop()
-		}
+		}  // else noop
 
 		self.cache[key] = entry
 	}
@@ -80,7 +77,7 @@ extension FeaturesCache {
 		_ featureType: Feature.Type,
 		context: Feature.Context
 	) throws -> Feature?
-	where Feature: LoadableFeature {
+	where Feature: DynamicFeature {
 		let key: Key = .key(
 			for: featureType,
 			context: context
@@ -126,7 +123,7 @@ extension FeaturesCache.Key {
 		for featureType: Feature.Type,
 		context: Feature.Context
 	) -> Self
-	where Feature: LoadableFeature {
+	where Feature: DynamicFeature {
 		.instanceIdentifier(
 			featureType: featureType,
 			context: context

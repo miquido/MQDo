@@ -7,9 +7,9 @@ struct TestFeature {
 	var testString: () -> String
 }
 
-extension TestFeature: LoadableFeature {
+extension TestFeature: DynamicFeature {
 
-	struct Context: LoadableFeatureContext, Hashable {
+	struct Context: DynamicFeatureContext, Hashable {
 
 		var intValue: Int
 		var stringValue: String

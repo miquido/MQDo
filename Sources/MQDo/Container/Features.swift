@@ -21,48 +21,29 @@ import MQ
 /// If requested feature is not defined in current tree branch it fails to load with an error.
 public final class Features {
 
-	private let scopes: Set<FeaturesScope.Identifier>
+	private let scope: Set<FeaturesScope.Identifier>
 	private var combinedScopes: Set<FeaturesScope.Identifier> {
-		self.scopes.union(self.parent?.combinedScopes ?? .init())
+		self.scope.union(self.parent?.combinedScopes ?? .init())
 	}
-	private let lock: Lock
+	private let scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry>
 	private let factory: FeaturesFactory
 	private var cache: FeaturesCache
-	private let parent: Features?
-	// swift-format-ignore: NeverUseImplicitlyUnwrappedOptionals
-	private unowned var root: Features!
-
-	private convenience init(
-		scopes: Set<FeaturesScope.Identifier>,
-		lock: Lock,  // a tree should use only one, shared lock
-		parent: Features?,
-		root: Features?,
-		registry: FeaturesRegistry
-	) {
-		self.init(
-			scopes: scopes,
-			lock: lock,
-			parent: parent,
-			root: root,
-			factory: .init(using: registry),
-			cache: .init()
-		)
-	}
+	private unowned let parent: Features?
+	private let lock: Lock  // shared for the tree
 
 	private init(
+		lock: Lock,
 		scopes: Set<FeaturesScope.Identifier>,
-		lock: Lock,  // a tree should use only one, shared lock
 		parent: Features?,
-		root: Features?,
-		factory: FeaturesFactory,
-		cache: FeaturesCache
+		registry: FeaturesRegistry,
+		scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry>
 	) {
-		self.scopes = scopes
 		self.lock = lock
+		self.scope = scopes
 		self.parent = parent
-		self.factory = factory
-		self.cache = cache
-		self.root = root ?? self
+		self.factory = .init(using: registry)
+		self.cache = .init()
+		self.scopesRegistries = scopesRegistries
 	}
 
 	deinit {
@@ -70,6 +51,8 @@ public final class Features {
 		self.cache.clear()
 	}
 }
+
+extension Features: @unchecked Sendable {}
 
 extension Features {
 
@@ -95,11 +78,11 @@ extension Features {
 		registry(&featuresRegistry)
 
 		return .init(
+			lock: .nsRecursiveLock(),
 			scopes: [RootFeaturesScope.identifier],
-			lock: .osUnfairLock(),
 			parent: .none,
-			root: .none,
-			registry: featuresRegistry.registry
+			registry: featuresRegistry.registry,
+			scopesRegistries: featuresRegistry.scopesRegistries
 		)
 	}
 
@@ -121,7 +104,7 @@ extension Features {
 	///   Filled automatically based on compile time constants.
 	/// - Returns: `true` if required scope was present in search,
 	/// otherwise returns `false`.
-	public func containsScope<Scope>(
+	@Sendable public func containsScope<Scope>(
 		_ scope: Scope.Type,
 		checkRecursively: Bool = false,
 		file: StaticString = #fileID,
@@ -133,7 +116,7 @@ extension Features {
 			scopesToCheck = self.combinedScopes
 		}
 		else {
-			scopesToCheck = self.scopes
+			scopesToCheck = self.scope
 		}
 
 		#if DEBUG
@@ -147,73 +130,6 @@ extension Features {
 	/// Create new container branch with provided scopes.
 	///
 	/// - Parameters:
-	///   - scope: Scope of new child container (new branch).
-	///   - registrySetup: Optional customization of feature implementations (registry)
-	///   for the child container. No customization will be done if not provided.
-	/// - Returns: New instance of ``Features`` container using
-	/// provided scope and optionally modified features registry.
-	public func branch<Scope>(
-		scope: Scope.Type = Scope.self,
-		registrySetup: ScopedFeaturesRegistry<Scope>.SetupFunction = noop
-	) -> Features
-	where Scope: FeaturesScope {
-		runtimeAssert(
-			Scope.identifier != RootFeaturesScope.identifier,
-			message: "Cannot use RootFeaturesScope for a child!"
-		)
-
-		var featuresRegistry: ScopedFeaturesRegistry<Scope>
-		do {
-			featuresRegistry =
-				try .init(
-					scope: Scope.self,
-					registry: self
-						.root  // scope registry has to be defined only on roots
-						.instance(
-							of: ScopeFeaturesRegistry.self,
-							context: Scope.identifier
-						)
-						.featuresRegistry
-				)
-		}
-		catch let error as FeatureLoadingFailed where error.cause is FeatureUndefined {
-			FeaturesScopeUndefined
-				.error(
-					message: "Please define all required scopes on root features registry.",
-					scope: Scope.self
-				)
-				.asAssertionFailure()
-
-			// use empty registry for undefined scopes on nondebug builds
-			featuresRegistry = .init()
-		}
-		catch {
-			Unidentified
-				.error(
-					message:
-						"FeaturesRegistryForScope was not available due to unknown error, please report the bug.",
-					underlyingError: error
-				)
-				.asAssertionFailure()
-
-			// use empty registry as a fallback on nondebug builds
-			featuresRegistry = .init()
-		}
-
-		registrySetup(&featuresRegistry)
-
-		return .init(
-			scopes: [Scope.identifier],
-			lock: self.lock,
-			parent: self,
-			root: self.root,
-			registry: featuresRegistry.registry
-		)
-	}
-
-	/// Create new container branch with provided scopes.
-	///
-	/// - Parameters:
 	///   - scope: First scope of new child container (new branch).
 	///   - scopes: Tail (rest) of new child container scopes.
 	///   In case of conflicting features definitions resolved
@@ -221,10 +137,14 @@ extension Features {
 	///   scope in argument list containing conflicting feature).
 	/// - Returns: New instance of ``Features`` container using
 	/// provided scopes and combined features registry.
-	@_disfavoredOverload public func branch(
+	@_disfavoredOverload @Sendable public func branch(
 		scope: any FeaturesScope.Type,
 		_ scopes: any FeaturesScope.Type...
 	) -> Features {
+		#if DEBUG
+			guard !self.testingScope else { return self }
+		#endif
+
 		let scopes: Array<FeaturesScope.Type> = [scope] + scopes
 
 		runtimeAssert(
@@ -233,19 +153,12 @@ extension Features {
 		)
 
 		var combinedFeaturesRegistry: FeaturesRegistry = .init()
+
 		for scope in scopes {
-			do {
-				try combinedFeaturesRegistry.merge(
-					self
-						.root  // scope registry has to be defined only on roots
-						.instance(
-							of: ScopeFeaturesRegistry.self,
-							context: scope.identifier
-						)
-						.featuresRegistry
-				)
+			if let scopeRegistry: FeaturesRegistry = self.scopesRegistries[scope.identifier] {
+				combinedFeaturesRegistry.merge(scopeRegistry)
 			}
-			catch let error as FeatureLoadingFailed where error.cause is FeatureUndefined {
+			else {
 				FeaturesScopeUndefined
 					.error(
 						message: "Please define all required scopes on root features registry.",
@@ -255,25 +168,14 @@ extension Features {
 
 				// ignore undefined scopes on nondebug builds
 			}
-			catch {
-				Unidentified
-					.error(
-						message:
-							"ScopeFeaturesRegistry was not available due to unknown error, please report the bug.",
-						underlyingError: error
-					)
-					.asAssertionFailure()
-
-				// ignore errors on nondebug builds
-			}
 		}
 
 		return .init(
-			scopes: Set(scopes.map { $0.identifier }),
 			lock: self.lock,
+			scopes: Set(scopes.map { $0.identifier }),
 			parent: self,
-			root: self.root,
-			registry: combinedFeaturesRegistry
+			registry: combinedFeaturesRegistry,
+			scopesRegistries: self.scopesRegistries
 		)
 	}
 }
@@ -295,43 +197,39 @@ extension Features {
 	/// of requested feature but this container has its own definition (even the same one)
 	/// it will create a new, local instance of that feature and provide it through this function.
 	///
-	/// Instances of features which context conform to ``LoadableFeatureContext``
+	/// Instances of features which context conform to ``DynamicFeatureContext``
 	/// are additionally distinguished by the value of context. If the feature
 	/// supports caching then multiple instances of it can be cached at once.
 	///
 	/// - Parameters:
 	///   - featureType: Type of requested feature.
 	///   - context: Context in which requested feature should be provided.
-	///   or throws an error otherwise.
 	///   - file: Source code file identifier used to track potential error.
 	///   Filled automatically based on compile time constants.
 	///   - line: Line in given source code file used to track potential error.
 	///   Filled automatically based on compile time constants.
 	/// - Returns: Instance of requested feature resolved by this container
 	/// - Throws: When a feature loading fails or is not defined error is thrown.
-	public func instance<Feature>(
+	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		context: Feature.Context,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) throws -> Feature
-	where Feature: LoadableFeature {
-		try self.lock.withLock {
+	where Feature: DynamicFeature {
+		try self.lock.withLock { () throws -> Feature in
 			if let cachedFeature: Feature = try self.cache.get(featureType, context: context) {
 				return cachedFeature
 			}
 			else {
 				do {
-					let selfCopy: Features = self.noLockCopy()
-					// synchronize cache after loading
-					defer { self.cache = selfCopy.cache }
 					let feature: Feature =
 						try self
 						.factory
 						.load(
 							featureType,
 							context: context,
-							within: selfCopy,
+							within: self,
 							cache: { (entry: FeaturesCache.Entry) in
 								#if DEBUG
 									var entry: FeaturesCache.Entry = entry
@@ -340,9 +238,9 @@ extension Features {
 										.set(context, for: "context")
 									entry
 										.debugContext
-										.set(selfCopy.scopes, for: "scope")
+										.set(self.branchDescription, for: "branch")
 								#endif
-								selfCopy.cache.set(
+								self.cache.set(
 									entry: entry,
 									for: .key(
 										for: featureType,
@@ -355,14 +253,12 @@ extension Features {
 						)
 					return feature
 				}
-				catch let error as FeatureLoadingFailed where error.cause is FeatureUndefined {
+				catch let error as FeatureLoadingFailed
+				where error.cause is FeatureUndefined {
 					if let parent: Features = self.parent {
 						do {
-							let parentCopy: Features = parent.noLockCopy()
-							// synchronize cache after loading
-							defer { parent.cache = parentCopy.cache }
 							return
-								try parentCopy
+								try parent
 								.instance(
 									of: featureType,
 									context: context,
@@ -374,27 +270,40 @@ extension Features {
 							throw
 								error
 								.asTheError()
-								.with(context, for: "context")
-								.with(self.scopes, for: "scope")
-								.with(self.branchDescription, for: "features")
+								// replace branch description with current
+								.with(self.branchDescription, for: "branch")
+								.asRuntimeWarning()
 						}
 					}
 					else {
-						throw
-							error
-							.asTheError()
-							.with(context, for: "context")
-							.with(self.scopes, for: "scope")
-							.with(self.branchDescription, for: "features")
+						#if DEBUG
+							if self.testingScope {
+								let placeholder: Feature = .placeholder
+								self.cache.set(
+									entry: .init(
+										feature: placeholder,
+										debugContext: .context(
+											message: "Placeholder",
+											file: file,
+											line: line
+										)
+										.with(context, for: "context")
+										.with(self.branchDescription, for: "branch"),
+										removal: noop
+									),
+									for: .key(
+										for: featureType,
+										context: context
+									)
+								)
+								return placeholder
+							}  // else continue to an error
+						#endif
+						throw error.asRuntimeWarning()
 					}
 				}
 				catch {
-					throw
-						error
-						.asTheError()
-						.with(context, for: "context")
-						.with(self.scopes, for: "scope")
-						.with(self.branchDescription, for: "features")
+					throw error
 				}
 			}
 		}
@@ -424,15 +333,96 @@ extension Features {
 	/// - Returns: Instance of requested feature resolved by this container
 	///   or throws an error otherwise.
 	/// - Throws: When a feature loading fails or is not defined error is thrown.
-	public func instance<Feature, Tag>(
+	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) throws -> Feature
-	where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
+	where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
 		try self.instance(
 			of: featureType,
 			context: .context,
+			file: file,
+			line: line
+		)
+	}
+
+	/// Get an lazily resolved instance of the requested feature.
+	///
+	/// This function allows lazily accessing instances of features.
+	/// It can be used to resolve circular dependencies
+	/// between features.
+	/// Access to the feature is postponed until first call
+	/// for instance from returned ``LazyInstance``.
+	/// ``LazyInstance`` caches result of loading ``Feature``
+	/// and does not reach ``Features`` container again after first loading attempt.
+	/// See ``instance(of:context:file:line:)`` for the details about loading features.
+	///
+	/// - Parameters:
+	///   - featureType: Type of requested feature.
+	///   - context: Context in which requested feature should be provided.
+	///   - file: Source code file identifier used to track potential error.
+	///   Filled automatically based on compile time constants.
+	///   - line: Line in given source code file used to track potential error.
+	///   Filled automatically based on compile time constants.
+	/// - Returns: Lazy wrapper for instance of requested
+	/// feature. Feature instance is not resolved
+	/// immediately and can fail later.
+	@Sendable public func lazyInstance<Feature>(
+		of featureType: Feature.Type = Feature.self,
+		context: Feature.Context,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) -> LazyInstance<Feature>
+	where Feature: DynamicFeature {
+		LazyInstance(
+			{ @Sendable () throws -> Feature in
+				try self.instance(
+					of: featureType,
+					context: context,
+					file: file,
+					line: line
+				)
+			},
+			file: file,
+			line: line
+		)
+	}
+
+	/// Get an lazily resolved instance of the requested feature.
+	///
+	/// This function allows lazily accessing instances of features.
+	/// It can be used to resolve circular dependencies
+	/// between features.
+	/// Access to the feature is postponed until first call
+	/// for instance from returned ``LazyInstance``.
+	/// ``LazyInstance`` caches result of loading ``Feature``
+	/// and does not reach ``Features`` container again after first loading attempt.
+	/// See ``instance(of:context:file:line:)`` for the details about loading features.
+	///
+	/// - Parameters:
+	///   - featureType: Type of requested feature.
+	///   - file: Source code file identifier used to track potential error.
+	///   Filled automatically based on compile time constants.
+	///   - line: Line in given source code file used to track potential error.
+	///   Filled automatically based on compile time constants.
+	/// - Returns: Lazy wrapper for instance of requested
+	/// feature. Feature instance is not resolved
+	/// immediately and can fail later.
+	@Sendable public func lazyInstance<Feature>(
+		of featureType: Feature.Type = Feature.self,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) -> LazyInstance<Feature>
+	where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
+		LazyInstance(
+			{ @Sendable () throws -> Feature in
+				try self.instance(
+					of: featureType,
+					file: file,
+					line: line
+				)
+			},
 			file: file,
 			line: line
 		)
@@ -456,7 +446,7 @@ extension Features {
 	/// of requested feature but this container has its own definition (even the same one)
 	/// it will create a new, local instance of that feature.
 	///
-	/// Instances of features which context conform to ``LoadableFeatureContext``
+	/// Instances of features which context conform to ``DynamicFeatureContext``
 	/// are additionally distinguished by the value of context. If the feature
 	/// supports caching then multiple instances of it can be cached at once.
 	///
@@ -469,13 +459,13 @@ extension Features {
 	///   Filled automatically based on compile time constants.
 	/// - Throws: When a feature cannot be cached, loading it fails
 	///   or it is not defined error is thrown.
-	public func loadIfNeeded<Feature>(
+	@Sendable public func loadIfNeeded<Feature>(
 		_ featureType: Feature.Type,
 		context: Feature.Context,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) throws
-	where Feature: LoadableFeature {
+	where Feature: DynamicFeature {
 		do {
 			// TODO: refine preloading features
 			// to avoid loading instances which
@@ -498,6 +488,7 @@ extension Features {
 						line: line
 					)
 				)
+				.asRuntimeWarning()
 		}
 	}
 
@@ -527,12 +518,12 @@ extension Features {
 	///   Filled automatically based on compile time constants.
 	/// - Throws: When a feature cannot be cached, loading it fails
 	///   or it is not defined error is thrown.
-	public func loadIfNeeded<Feature, Tag>(
+	@Sendable public func loadIfNeeded<Feature>(
 		_ featureType: Feature.Type,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) throws
-	where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
+	where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
 		try self.loadIfNeeded(
 			featureType,
 			context: .context,
@@ -546,7 +537,7 @@ extension Features {
 extension Features: CustomStringConvertible {
 
 	public var description: String {
-		"Features\(self.scopes)"
+		"Features\(self.scope)"
 	}
 }
 
@@ -580,34 +571,13 @@ extension Features: CustomLeafReflectable {
 extension Features {
 
 	internal var branchDescription: String {
-		var description: String = "Branch"
+		var description: String = ""
 		var current: Features? = self
 		while let features = current {
-			description.append("\n\(features.description)")
+			description.append("\nNode: \(features.scope)")
 			current = features.parent
 		}
 		return description
-	}
-}
-
-extension Features {
-
-	// Copies without lock relay on single lock per container tree.
-	// It allows to avoid recursion in locking and should be
-	// used only with that purpose.
-	private func noLockCopy() -> Self {
-		.init(
-			scopes: self.scopes,
-			lock: .init(  // no locking
-				acquire: noop,
-				tryAcquire: always(true),
-				release: noop
-			),
-			parent: self.parent,
-			root: self.root,
-			factory: self.factory,
-			cache: self.cache
-		)
 	}
 }
 
@@ -633,22 +603,18 @@ extension Features {
 			_ featureType: Feature.Type = Feature.self,
 			_ loader: FeatureLoader<Feature>
 		) -> Self
-		where Feature: LoadableFeature {
-			Self.init(
+		where Feature: DynamicFeature {
+			.init(
+				lock: .nsRecursiveLock(),
 				scopes: [TestingScope.identifier],
-				lock: .init(  // no locking, test should be synchronous
-					acquire: noop,
-					tryAcquire: always(true),
-					release: noop
-				),
 				parent: .none,
-				root: .none,
-				registry: .init(loaders: [loader.asAnyLoader])
+				registry: .init(loaders: [loader.asAnyLoader]),
+				scopesRegistries: .init()
 			)
 		}
 
 		private var testingScope: Bool {
-			self.scopes.contains(TestingScope.identifier)
+			self.scope.contains(TestingScope.identifier)
 		}
 
 		/// Force given instance in branch cache.
@@ -667,12 +633,12 @@ extension Features {
 		///   Filled automatically based on compile time constants.
 		///   - line: Line in given source code file used to track potential error.
 		///   Filled automatically based on compile time constants.
-		public func use<Feature>(
+		@Sendable public func use<Feature>(
 			instance: Feature,
 			context: Feature.Context,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: LoadableFeature {
+		) where Feature: DynamicFeature {
 			self.lock.withLock { () -> Void in
 				self.cache
 					.set(
@@ -683,7 +649,8 @@ extension Features {
 								file: file,
 								line: line
 							)
-							.with(context, for: "context"),
+							.with(context, for: "context")
+							.with(self.branchDescription, for: "branch"),
 							removal: noop
 						),
 						for: .key(
@@ -709,11 +676,11 @@ extension Features {
 		///   Filled automatically based on compile time constants.
 		///   - line: Line in given source code file used to track potential error.
 		///   Filled automatically based on compile time constants.
-		public func use<Feature, Tag>(
+		@Sendable public func use<Feature>(
 			instance: Feature,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
+		) where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
 			self.use(
 				instance: instance,
 				context: .context,
@@ -739,20 +706,20 @@ extension Features {
 		///   Filled automatically based on compile time constants.
 		///   - line: Line in given source code file used to track potential error.
 		///   Filled automatically based on compile time constants.
-		@_disfavoredOverload public func patch<Feature, Property>(
+		@_disfavoredOverload @Sendable public func patch<Feature, Property>(
 			_ keyPath: WritableKeyPath<Feature, Property>,
 			context: Feature.Context,
 			with updated: Property,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: LoadableFeature {
+		) where Feature: DynamicFeature {
 			self.lock.withLock { () -> Void in
 				// load if needed ignoring errors
 				do {
-					let selfCopy: Features = self.noLockCopy()
-					// synchronize cache after loading
-					defer { self.cache = selfCopy.cache }
-					try selfCopy.loadIfNeeded(Feature.self, context: context)
+					try self.loadIfNeeded(
+						Feature.self,
+						context: context
+					)
 				}
 				catch {
 					error
@@ -780,7 +747,7 @@ extension Features {
 				else {
 					InternalInconsistency
 						.error(message: "Feature is not matching expected type, please report a bug.")
-						.with(self.scopes, for: "scope")
+						.with(self.branchDescription, for: "branch")
 						.with(Feature.self, for: "expected")
 						.with(context, for: "context")
 						.with(type(of: cacheEntry.feature), for: "received")
@@ -805,7 +772,7 @@ extension Features {
 							line: line
 						)
 						.with(context, for: "context")
-						.with(self.scopes, for: "scope")
+						.with(self.branchDescription, for: "branch")
 					)
 				self.cache.set(
 					entry: cacheEntry,
@@ -832,15 +799,15 @@ extension Features {
 		///   Filled automatically based on compile time constants.
 		///   - line: Line in given source code file used to track potential error.
 		///   Filled automatically based on compile time constants.
-		public func patch<Feature, Property, Tag>(
+		@Sendable public func patch<Feature, Property>(
 			_ keyPath: WritableKeyPath<Feature, Property>,
 			with updated: Property,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
+		) where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
 			self.patch(
 				keyPath,
-				context: TagFeatureContext<Tag>.context,
+				context: ContextlessFeatureContext.context,
 				with: updated,
 				file: file,
 				line: line
@@ -863,20 +830,20 @@ extension Features {
 		///   Filled automatically based on compile time constants.
 		///   - line: Line in given source code file used to track potential error.
 		///   Filled automatically based on compile time constants.
-		@_disfavoredOverload public func patch<Feature>(
+		@_disfavoredOverload @Sendable public func patch<Feature>(
 			_ featureType: Feature.Type,
 			context: Feature.Context,
 			with patching: (inout Feature) -> Void,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: LoadableFeature {
+		) where Feature: DynamicFeature {
 			self.lock.withLock { () -> Void in
 				// load if needed ignoring errors
 				do {
-					let selfCopy: Features = self.noLockCopy()
-					// synchronize cache after loading
-					defer { self.cache = selfCopy.cache }
-					try selfCopy.loadIfNeeded(Feature.self, context: context)
+					try self.loadIfNeeded(
+						Feature.self,
+						context: context
+					)
 				}
 				catch {
 					error
@@ -904,7 +871,7 @@ extension Features {
 				else {
 					InternalInconsistency
 						.error(message: "Feature is not matching expected type, please report a bug.")
-						.with(self.scopes, for: "scope")
+						.with(self.branchDescription, for: "branch")
 						.with(Feature.self, for: "expected")
 						.with(context, for: "context")
 						.with(type(of: cacheEntry.feature), for: "received")
@@ -929,7 +896,7 @@ extension Features {
 							line: line
 						)
 						.with(context, for: "context")
-						.with(self.scopes, for: "scope")
+						.with(self.branchDescription, for: "branch")
 					)
 				self.cache.set(
 					entry: cacheEntry,
@@ -956,15 +923,15 @@ extension Features {
 		///   Filled automatically based on compile time constants.
 		///   - line: Line in given source code file used to track potential error.
 		///   Filled automatically based on compile time constants.
-		public func patch<Feature, Tag>(
+		@Sendable public func patch<Feature>(
 			_ featureType: Feature.Type,
 			with patching: (inout Feature) -> Void,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
+		) where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
 			self.patch(
 				featureType,
-				context: TagFeatureContext<Tag>.context,
+				context: ContextlessFeatureContext.context,
 				with: patching,
 				file: file,
 				line: line
@@ -985,13 +952,13 @@ extension Features {
 		///   Filled automatically based on compile time constants.
 		/// - Returns: ``SourceCodeContext`` of requested feature implementation
 		/// if any or undefined context otherwise.
-		public func debugContext<Feature>(
+		@Sendable public func debugContext<Feature>(
 			for featureType: Feature.Type,
 			context: Feature.Context,
 			file: StaticString = #fileID,
 			line: UInt = #line
 		) -> SourceCodeContext
-		where Feature: LoadableFeature {
+		where Feature: DynamicFeature {
 			self.lock.withLock { () -> SourceCodeContext in
 				self
 					.cache
@@ -1009,7 +976,12 @@ extension Features {
 					)
 					?? self
 					.parent?
-					.debugContext(for: featureType, context: context)
+					.debugContext(
+						for: featureType,
+						context: context,
+						file: file,
+						line: line
+					)
 					?? FeatureUndefined
 					.error(
 						message: "FeatureLoader.undefined",
@@ -1017,7 +989,7 @@ extension Features {
 						file: file,
 						line: line
 					)
-					.with(self.scopes, for: "scope")
+					.with(self.branchDescription, for: "branch")
 					.with(Feature.self, for: "feature")
 					.with("Undefined", for: "implementation")
 					.context
@@ -1037,12 +1009,12 @@ extension Features {
 		///   Filled automatically based on compile time constants.
 		/// - Returns: ``SourceCodeContext`` of requested feature implementation
 		/// if any or undefined context otherwise.
-		public func debugContext<Feature, Tag>(
+		@Sendable public func debugContext<Feature>(
 			for featureType: Feature.Type,
 			file: StaticString = #fileID,
 			line: UInt = #line
 		) -> SourceCodeContext
-		where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
+		where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
 			self.debugContext(
 				for: featureType,
 				context: .context,
@@ -1056,8 +1028,8 @@ extension Features {
 		/// Clearing cache can be used for debugging and testing.
 		/// It is not available in release builds.
 		/// Exact result of this function call is undefined.
-		public func clearCache() {
-			self.lock.withLock {
+		@Sendable public func clearCache() {
+			self.lock.withLock { () -> Void in
 				self.cache.clear()
 			}
 		}

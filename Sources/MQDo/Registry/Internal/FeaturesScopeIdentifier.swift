@@ -11,7 +11,7 @@ internal struct FeaturesScopeIdentifier {
 	}
 }
 
-extension FeaturesScopeIdentifier: LoadableFeatureContext {}
+extension FeaturesScopeIdentifier: Sendable {}
 
 extension FeaturesScopeIdentifier: Hashable {
 

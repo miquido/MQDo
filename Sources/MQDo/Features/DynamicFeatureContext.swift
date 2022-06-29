@@ -1,11 +1,23 @@
 /// Feature context allowing to distinguish instances of the same feature type.
 ///
-/// ``LoadableFeatureContext`` is a type used for defining
+/// ``DynamicFeatureContext`` is a type used for defining
 /// contexts for features. It allows to distinguish two feature
 /// instances of the exact same type by its context value.
 /// Two features of the same type which has different context identifiers
 /// are treated as separate features similarly to those of different type.
-public protocol LoadableFeatureContext {
+///
+/// - Note: Contexts with matching ``identifier`` but different
+/// actual value should be avoided when using cached features or
+/// when using context specific implementations of features.
+/// Cached features use context identifier as a part of its cache key
+/// while ignoring actual context value and value itself is not
+/// passed to an instance when picking it from cache. It might
+/// result in undefined or unexpected behavior. However feature
+/// implementations that do not use cache and create new instances
+/// on demand can use context value to pass some arguments.
+public protocol DynamicFeatureContext: Hashable, Sendable {
+
+	associatedtype Identifier: Hashable & Sendable
 
 	/// Identifier used to distinguish contexts of a feature.
 	///
@@ -13,24 +25,25 @@ public protocol LoadableFeatureContext {
 	/// Its value cannot change over time and should be different for values that are
 	/// expected to distinguish feature instances.
 	///
-	/// If the type conforming to ``AnyFeatureContext`` is itself ``Hashable``
-	/// default implementation of this property uses it to provide this property value.
+	/// Default implementation of this property uses
+	/// context itself to provide this value.
 	///
 	/// - Warning: Value of ``identifier`` should not change over time.
 	/// Once the context becomes initialized it should be constant for its lifetime.
 	/// Changing it might result in undefined behavior.
-	var identifier: AnyHashable { get }
+	var identifier: Identifier { get }
 }
 
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
-extension LoadableFeatureContext where Self: Hashable {
+extension DynamicFeatureContext {
 
-	public var identifier: AnyHashable {
-		self as AnyHashable
+	// default implementation
+	public var identifier: Self {
+		self
 	}
 }
 
-extension LoadableFeatureContext {
+extension DynamicFeatureContext {
 
 	internal static var typeDescription: String {
 		"\(Self.self)"
@@ -42,5 +55,9 @@ extension LoadableFeatureContext {
 
 	internal var description: String {
 		"\(self)"  // it will use CustomStringConvertible if able
+	}
+
+	internal var erasedIdentifier: AnyDynamicFeatureContextIdentifier {
+		.init(self.identifier)
 	}
 }

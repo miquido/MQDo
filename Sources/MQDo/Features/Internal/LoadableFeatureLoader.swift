@@ -1,14 +1,20 @@
 import MQ
 
-internal struct LoadableFeatureLoader {
+internal struct DynamicFeatureLoader {
 
-	internal typealias Identifier = LoadableFeatureLoaderIdentifier
-	internal typealias Load = (_ context: LoadableFeatureContext, _ container: Features) throws -> AnyFeature
-	internal typealias LoadingCompletion = (
-		_ instance: AnyFeature, _ context: LoadableFeatureContext, _ container: Features
-	)
-		-> Void
-	internal typealias Unload = (_ instance: AnyFeature) -> Void
+	internal typealias Identifier = DynamicFeatureLoaderIdentifier
+	internal typealias Load = @Sendable (
+		_ context: Any,
+		_ container: Features
+	) throws -> AnyFeature
+	internal typealias LoadingCompletion = @Sendable (
+		_ instance: AnyFeature,
+		_ context: Any,
+		_ container: Features
+	) -> Void
+	internal typealias Unload = @Sendable (
+		_ instance: AnyFeature
+	) -> Void
 
 	#if DEBUG
 		internal let debugContext: SourceCodeContext
@@ -20,8 +26,10 @@ internal struct LoadableFeatureLoader {
 	internal let unload: Unload?
 }
 
+extension DynamicFeatureLoader: Sendable {}
+
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
-extension LoadableFeatureLoader: CustomStringConvertible {
+extension DynamicFeatureLoader: CustomStringConvertible {
 
 	internal var description: String {
 		"FeatureLoader for \(self.identifier.typeDescription)"
@@ -29,7 +37,7 @@ extension LoadableFeatureLoader: CustomStringConvertible {
 }
 
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
-extension LoadableFeatureLoader: CustomDebugStringConvertible {
+extension DynamicFeatureLoader: CustomDebugStringConvertible {
 
 	internal var debugDescription: String {
 		#if DEBUG

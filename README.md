@@ -8,9 +8,9 @@ Dependency injection framework for Swift.
 
 ## Features
 
-MQDo provides numerous features for managing dependencies across Swift codebases:
+MQDo provides numerous functionalities useful for managing dependencies across Swift codebases:
 - dependency container tree with support for branches and scopes
-- scopes with automatic lifetime management
+- scopes with automatic access and lifetime management
 - multiple dependency trees (multiple, independent tree roots)
 - multiple implementations of the same type within a single tree based on scopes
 - multiple instances of the same type within a single tree based on scopes
@@ -40,9 +40,9 @@ Then define its conformance to a required protocol allowing usage in dependency 
 
 ```swift
 
-// LoadableFeature implementation is required. Features can have Context types defined or
-// be contextless as defined here using `ContextlessLoadableFeature` protocol.
-extension Logger: ContextlessLoadableFeature {
+// DynamicFeature implementation is required. Features can have Context types defined or
+// be contextless as defined here using `DynamicContextlessFeature` protocol.
+extension Logger: DynamicContextlessFeature {
 
   // For debug builds it is required to provide placeholder implementation.
   #if DEBUG
@@ -79,7 +79,7 @@ extension FeatureLoader where Feature == Logger {
 }
 ```
 
-If you have defined your feature interface and some implementation you can then register it for a scope inside a container to be available. All feature implementations should be defined when creating container tree root.
+If you have defined your feature interface and some implementation you can then register it within a scope inside a container to be available. All feature implementations should be defined when creating container tree root.
 
 ```swift
 let features: Features = .root { (registry: inout ScopedFeaturesRegistry<RootFeaturesScope>) in

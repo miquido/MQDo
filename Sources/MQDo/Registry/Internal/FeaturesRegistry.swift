@@ -1,13 +1,13 @@
 internal struct FeaturesRegistry {
 
-	private var loaders: Dictionary<LoadableFeatureLoaderIdentifier, LoadableFeatureLoader>
+	private var loaders: Dictionary<DynamicFeatureLoaderIdentifier, DynamicFeatureLoader>
 
 	internal init(
-		loaders: Array<LoadableFeatureLoader> = .init()
+		loaders: Array<DynamicFeatureLoader> = .init()
 	) {
 		self.loaders = .init()
 		self.loaders.reserveCapacity(loaders.count)
-		for loader: LoadableFeatureLoader in loaders {
+		for loader: DynamicFeatureLoader in loaders {
 			self.loaders[loader.identifier] = loader
 		}
 	}
@@ -28,8 +28,9 @@ extension FeaturesRegistry {
 		file: StaticString,
 		line: UInt
 	) throws -> FeatureLoader<Feature>
-	where Feature: LoadableFeature {
-		let matchingLoader: LoadableFeatureLoader? =
+	where Feature: DynamicFeature {
+		let matchingLoader: DynamicFeatureLoader? =
+			// look for a context specific loader
 			self.loaders[
 				.loaderIdentifier(
 					featureType: featureType,
@@ -44,7 +45,7 @@ extension FeaturesRegistry {
 				)
 			]
 
-		guard let loader: LoadableFeatureLoader = matchingLoader
+		guard let loader: DynamicFeatureLoader = matchingLoader
 		else {
 			throw
 				FeatureUndefined
@@ -67,14 +68,14 @@ extension FeaturesRegistry {
 
 	@inline(__always)
 	internal mutating func use(
-		loader: LoadableFeatureLoader
+		loader: DynamicFeatureLoader
 	) {
 		self.loaders[loader.identifier] = loader
 	}
 
 	@inline(__always)
 	internal mutating func removeLoader(
-		for identifier: LoadableFeatureLoaderIdentifier
+		for identifier: DynamicFeatureLoaderIdentifier
 	) {
 		self.loaders[identifier] = .none
 	}
@@ -85,7 +86,8 @@ extension FeaturesRegistry {
 			for featureType: Feature.Type = Feature.self,
 			context: Feature.Context
 		) -> SourceCodeContext?
-		where Feature: LoadableFeature {
+		where Feature: DynamicFeature {
+			// look for a context specific loader
 			(self.loaders[
 				.loaderIdentifier(
 					featureType: featureType,

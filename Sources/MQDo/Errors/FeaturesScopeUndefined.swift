@@ -14,7 +14,7 @@ public struct FeaturesScopeUndefined: TheError {
 	///   Filled automatically based on compile time constants.
 	///   - line: Line in given source code file.
 	///   Filled automatically based on compile time constants.
-	/// - Returns: New instance of ``FeatureUnimplemented`` error with given context.
+	/// - Returns: New instance of ``FeaturesScopeUndefined`` error with given context.
 	public static func error(
 		message: StaticString = "FeaturesScopeUndefined",
 		scope: FeaturesScope.Type,
