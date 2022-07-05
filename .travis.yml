@@ -1,5 +1,0 @@
-language: swift
-osx_image: xcode13.1
-
-script:
-- make test
