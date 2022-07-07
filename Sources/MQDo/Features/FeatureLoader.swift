@@ -8,7 +8,7 @@ import MQ
 /// and allowing cache for a given feature.
 /// ``FeatureLoader`` is intended to be a source of all ``LoadableFeature`` implementations
 /// allowing to manage and identify concrete implementations and its availability.
-public struct FeatureLoader<Feature>
+public struct FeatureLoader<Feature>: Sendable
 where Feature: LoadableFeature {
 
 	#if DEBUG
@@ -82,16 +82,17 @@ extension FeatureLoader {
 		_ featureType: Feature.Type = Feature.self,
 		contextSpecifier: Feature.Context? = .none,
 		implementation: StaticString = #function,
-		load: @escaping (_ context: Feature.Context, _ container: Features) throws -> Feature,
-		loadingCompletion: @escaping (_ instance: Feature, _ context: Feature.Context, _ container: Features) -> Void =
+		load: @escaping @Sendable (_ context: Feature.Context, _ container: Features) throws -> Feature,
+		loadingCompletion: @escaping @Sendable (_ instance: Feature, _ context: Feature.Context, _ container: Features) ->
+			Void =
 			noop,
 		unload: @escaping (_ instance: Feature) -> Void = noop,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
 	where Feature: LoadableFeature {
-		func featureLoad(
-			context: LoadableFeatureContext,
+		@Sendable func featureLoad(
+			context: Any,  // LoadableFeatureContext
 			using features: Features
 		) throws -> AnyFeature {
 			guard let context: Feature.Context = context as? Feature.Context
@@ -100,7 +101,7 @@ extension FeatureLoader {
 					InternalInconsistency
 					.error(message: "Feature context is not matching expected type, please report a bug.")
 					.with(Feature.Context.typeDescription, for: "expected")
-					.with(context.typeDescription, for: "received")
+					.with(type(of: context), for: "received")
 					.appending(
 						.message(
 							"FeatureLoader is invalid",
@@ -131,9 +132,9 @@ extension FeatureLoader {
 			return try load(context, features)
 		}
 
-		func featureLoadingCompletion(
+		@Sendable func featureLoadingCompletion(
 			_ feature: AnyFeature,
-			context: LoadableFeatureContext,
+			context: Any,  // LoadableFeatureContext
 			using features: Features
 		) {
 			guard let feature: Feature = feature as? Feature
@@ -157,7 +158,7 @@ extension FeatureLoader {
 				InternalInconsistency
 					.error(message: "Feature context is not matching expected type, please report a bug.")
 					.with(Feature.Context.typeDescription, for: "expected")
-					.with(context.typeDescription, for: "received")
+					.with(type(of: context), for: "received")
 					.appending(
 						.message(
 							"FeatureLoader is invalid",
@@ -171,7 +172,7 @@ extension FeatureLoader {
 			loadingCompletion(feature, context, features)
 		}
 
-		func featureUnload(
+		@Sendable func featureUnload(
 			_ feature: AnyFeature
 		) {
 			guard let feature: Feature = feature as? Feature
@@ -256,15 +257,16 @@ extension FeatureLoader {
 		_ featureType: Feature.Type = Feature.self,
 		contextSpecifier: Feature.Context? = .none,
 		implementation: StaticString = #function,
-		load: @escaping (_ context: Feature.Context, _ container: Features) throws -> Feature,
-		loadingCompletion: @escaping (_ instance: Feature, _ context: Feature.Context, _ container: Features) -> Void =
+		load: @escaping @Sendable (_ context: Feature.Context, _ container: Features) throws -> Feature,
+		loadingCompletion: @escaping @Sendable (_ instance: Feature, _ context: Feature.Context, _ container: Features) ->
+			Void =
 			noop,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
 	where Feature: LoadableFeature {
-		func featureLoad(
-			context: LoadableFeatureContext,
+		@Sendable func featureLoad(
+			context: Any,  // LoadableFeatureContext
 			using features: Features
 		) throws -> AnyFeature {
 			guard let context: Feature.Context = context as? Feature.Context
@@ -273,7 +275,7 @@ extension FeatureLoader {
 					InternalInconsistency
 					.error(message: "Feature context is not matching expected type, please report a bug.")
 					.with(Feature.Context.typeDescription, for: "expected")
-					.with(context.typeDescription, for: "received")
+					.with(type(of: context), for: "received")
 					.appending(
 						.message(
 							"FeatureLoader is invalid",
@@ -304,9 +306,9 @@ extension FeatureLoader {
 			return try load(context, features)
 		}
 
-		func featureLoadingCompletion(
+		@Sendable func featureLoadingCompletion(
 			_ feature: AnyFeature,
-			context: LoadableFeatureContext,
+			context: Any,  // LoadableFeatureContext
 			using features: Features
 		) {
 			guard let feature: Feature = feature as? Feature
@@ -330,7 +332,7 @@ extension FeatureLoader {
 				InternalInconsistency
 					.error(message: "Feature context is not matching expected type, please report a bug.")
 					.with(Feature.Context.typeDescription, for: "expected")
-					.with(context.typeDescription, for: "received")
+					.with(type(of: context), for: "received")
 					.appending(
 						.message(
 							"FeatureLoader is invalid",
@@ -415,11 +417,27 @@ extension FeatureLoader {
 		line: UInt = #line
 	) -> Self
 	where Feature: LoadableFeature {
-		lazy var lazyInstance: Feature = {
-			let feature: Feature = instance()
-			loadingCompletion(feature)
-			return feature
-		}()
+		let lazyInstance: LazyInstance<Feature> = .init(
+			{
+				let feature: Feature = instance()
+				loadingCompletion(feature)
+				return feature
+			},
+			file: file,
+			line: line
+		)
+
+		@Sendable func load(
+			context: Any,  // LoadableFeatureContext
+			features: Features
+		) -> AnyFeature {
+			do {
+				return try lazyInstance.instance
+			}
+			catch {
+				unreachable("Constant feature can't throw when lazily loading")
+			}
+		}
 
 		#if DEBUG
 			return Self(
@@ -436,7 +454,7 @@ extension FeatureLoader {
 						featureType: Feature.self,
 						contextSpecifier: contextSpecifier
 					),
-					load: always(lazyInstance),
+					load: load(context:features:),
 					loadingCompletion: noop,
 					unload: noop  // cache is not required but speeds up access
 				)
@@ -448,7 +466,7 @@ extension FeatureLoader {
 						featureType: Feature.self,
 						contextSpecifier: contextSpecifier
 					),
-					load: always(lazyInstance),
+					load: load(context:features:),
 					loadingCompletion: noop,
 					unload: noop  // cache is not required but speeds up access
 				)
@@ -481,26 +499,26 @@ extension FeatureLoader {
 	///   - line: Line in given source code file used to identify feature implementation.
 	///   Filled automatically based on compile time constants.
 	/// - Returns: Instance of ``FeatureLoader`` providing lazy loaded implementation of given feature.
-	public static func lazyLoaded<Tag>(
+	public static func lazyLoaded(
 		_ featureType: Feature.Type = Feature.self,
 		implementation: StaticString = #function,
-		load: @escaping (_ container: Features) throws -> Feature,
-		loadingCompletion: @escaping (_ instance: Feature, _ container: Features) -> Void = noop,
+		load: @escaping @Sendable (_ container: Features) throws -> Feature,
+		loadingCompletion: @escaping @Sendable (_ instance: Feature, _ container: Features) -> Void = noop,
 		unload: @escaping (_ instance: Feature) -> Void = noop,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
-	where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
-		func featureLoad(
-			context _: LoadableFeatureContext,  // placeholder
+	where Feature: LoadableFeature, Feature.Context == ContextlessFeatureContext {
+		@Sendable func featureLoad(
+			context _: Any,  // placeholder
 			using features: Features
 		) throws -> AnyFeature {
 			try load(features)
 		}
 
-		func featureLoadingCompletion(
+		@Sendable func featureLoadingCompletion(
 			_ feature: AnyFeature,
-			context _: LoadableFeatureContext,  // placeholder
+			context _: Any,  // placeholder
 			using features: Features
 		) {
 			guard let feature: Feature = feature as? Feature
@@ -522,7 +540,7 @@ extension FeatureLoader {
 			loadingCompletion(feature, features)
 		}
 
-		func featureUnload(
+		@Sendable func featureUnload(
 			_ feature: AnyFeature
 		) {
 			guard let feature: Feature = feature as? Feature
@@ -598,25 +616,25 @@ extension FeatureLoader {
 	///   - line: Line in given source code file used to identify feature implementation.
 	///   Filled automatically based on compile time constants.
 	/// - Returns: Instance of ``FeatureLoader`` providing disposable implementation of given feature.
-	public static func disposable<Tag>(
+	public static func disposable(
 		_ featureType: Feature.Type = Feature.self,
 		implementation: StaticString = #function,
-		load: @escaping (_ container: Features) throws -> Feature,
-		loadingCompletion: @escaping (_ instance: Feature, _ container: Features) -> Void = noop,
+		load: @escaping @Sendable (_ container: Features) throws -> Feature,
+		loadingCompletion: @escaping @Sendable (_ instance: Feature, _ container: Features) -> Void = noop,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
-	where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
-		func featureLoad(
-			context _: LoadableFeatureContext,  // placeholder
+	where Feature: LoadableFeature, Feature.Context == ContextlessFeatureContext {
+		@Sendable func featureLoad(
+			context _: Any,  // placeholder
 			using features: Features
 		) throws -> AnyFeature {
 			try load(features)
 		}
 
-		func featureLoadingCompletion(
+		@Sendable func featureLoadingCompletion(
 			_ feature: AnyFeature,
-			context _: LoadableFeatureContext,  // placeholder
+			context _: Any,  // placeholder
 			using features: Features
 		) {
 			guard let feature: Feature = feature as? Feature
@@ -695,7 +713,7 @@ extension FeatureLoader {
 	///   - line: Line in given source code file used to identify feature implementation.
 	///   Filled automatically based on compile time constants.
 	/// - Returns: Instance of ``FeatureLoader`` providing constant implementation of a given feature.
-	public static func constant<Tag>(
+	public static func constant(
 		_ featureType: Feature.Type = Feature.self,
 		implementation: StaticString = #function,
 		instance: @autoclosure @escaping () -> Feature,
@@ -703,12 +721,28 @@ extension FeatureLoader {
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
-	where Feature: LoadableFeature, Feature.Context == TagFeatureContext<Tag> {
-		lazy var lazyInstance: Feature = {
-			let feature: Feature = instance()
-			loadingCompletion(feature)
-			return feature
-		}()
+	where Feature: LoadableFeature, Feature.Context == ContextlessFeatureContext {
+		let lazyInstance: LazyInstance<Feature> = .init(
+			{
+				let feature: Feature = instance()
+				loadingCompletion(feature)
+				return feature
+			},
+			file: file,
+			line: line
+		)
+
+		@Sendable func load(
+			context: Any,  // LoadableFeatureContext
+			features: Features
+		) -> AnyFeature {
+			do {
+				return try lazyInstance.instance
+			}
+			catch {
+				unreachable("Constant feature can't throw when lazily loading")
+			}
+		}
 
 		#if DEBUG
 			return Self(
@@ -725,7 +759,7 @@ extension FeatureLoader {
 						featureType: Feature.self,
 						contextSpecifier: .context
 					),
-					load: always(lazyInstance),
+					load: load(context:features:),
 					loadingCompletion: noop,
 					unload: noop  // cache is not required but speeds up access
 				)
@@ -737,7 +771,7 @@ extension FeatureLoader {
 						featureType: Feature.self,
 						contextSpecifier: .context
 					),
-					load: always(lazyInstance),
+					load: load(context:features:),
 					loadingCompletion: noop,
 					unload: noop  // cache is not required but speeds up access
 				)
@@ -754,7 +788,7 @@ extension FeatureLoader {
 	}
 
 	@inline(__always)
-	internal func loadInstance(
+	@Sendable internal func loadInstance(
 		context: Feature.Context,
 		features: Features
 	) throws -> Feature
@@ -775,12 +809,17 @@ extension FeatureLoader {
 	}
 
 	@inline(__always)
-	internal func instanceLoadingCompletion(
+	@Sendable internal func instanceLoadingCompletion(
 		_ instance: Feature,
 		context: Feature.Context,
 		features: Features
 	) where Feature: LoadableFeature {
-		self.loader.loadingCompletion(instance, context, features)
+		self.loader
+			.loadingCompletion(
+				instance,
+				context,
+				features
+			)
 	}
 
 	internal var erasedUnload: LoadableFeatureLoader.Unload? {
@@ -790,7 +829,7 @@ extension FeatureLoader {
 
 extension LoadableFeatureLoader {
 
-	internal func asLoader<Feature>(
+	@Sendable internal func asLoader<Feature>(
 		for featureType: Feature.Type,
 		context: Feature.Context,
 		file: StaticString = #fileID,

@@ -1,14 +1,20 @@
 import MQ
 
-internal struct LoadableFeatureLoader {
+internal struct LoadableFeatureLoader: Sendable {
 
 	internal typealias Identifier = LoadableFeatureLoaderIdentifier
-	internal typealias Load = (_ context: LoadableFeatureContext, _ container: Features) throws -> AnyFeature
-	internal typealias LoadingCompletion = (
-		_ instance: AnyFeature, _ context: LoadableFeatureContext, _ container: Features
-	)
-		-> Void
-	internal typealias Unload = (_ instance: AnyFeature) -> Void
+	internal typealias Load = @Sendable (
+		_ context: Any,
+		_ container: Features
+	) throws -> AnyFeature
+	internal typealias LoadingCompletion = @Sendable (
+		_ instance: AnyFeature,
+		_ context: Any,
+		_ container: Features
+	) -> Void
+	internal typealias Unload = @Sendable (
+		_ instance: AnyFeature
+	) -> Void
 
 	#if DEBUG
 		internal let debugContext: SourceCodeContext

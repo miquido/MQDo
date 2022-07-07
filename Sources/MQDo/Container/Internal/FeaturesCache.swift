@@ -1,11 +1,18 @@
 import MQ
 
-internal struct FeaturesCache {
+internal final class FeaturesCache {
 
 	private var cache: Dictionary<Key, Entry>
 
 	internal init() {
 		self.cache = .init()
+	}
+
+	deinit {
+		// ensure proper unloading of features
+		for entry: FeaturesCache.Entry in self.cache.values {
+			entry.removal(entry.feature)
+		}
 	}
 }
 
@@ -13,7 +20,7 @@ extension FeaturesCache {
 
 	internal typealias Key = LoadableFeatureInstanceIdentifier
 
-	internal typealias Removal = (AnyFeature) -> Void
+	internal typealias Removal = @Sendable (AnyFeature) -> Void
 
 	internal struct Entry {
 
@@ -47,13 +54,13 @@ extension FeaturesCache {
 
 extension FeaturesCache {
 
-	internal mutating func getEntry(
+	internal func getEntry(
 		for key: Key
 	) -> Entry? {
 		self.cache[key]
 	}
 
-	internal mutating func set(
+	internal func set(
 		entry: Entry,
 		for key: Key
 	) {
@@ -102,7 +109,7 @@ extension FeaturesCache {
 		}
 	}
 
-	internal mutating func removeEntry(
+	internal func removeEntry(
 		for key: Key
 	) {
 		guard let entry: Entry = self.cache[key]
@@ -112,7 +119,7 @@ extension FeaturesCache {
 		entry.removal(entry.feature)
 	}
 
-	internal mutating func clear() {
+	internal func clear() {
 		for entry: FeaturesCache.Entry in self.cache.values {
 			entry.removal(entry.feature)
 		}

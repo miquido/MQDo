@@ -1,4 +1,4 @@
-internal struct FeaturesFactory {
+internal struct FeaturesFactory: Sendable {
 
 	private let registry: FeaturesRegistry
 
@@ -12,11 +12,11 @@ internal struct FeaturesFactory {
 extension FeaturesFactory {
 
 	@inline(__always)
-	internal func load<Feature>(
+	@Sendable internal func load<Feature>(
 		_ featureType: Feature.Type,
 		context: Feature.Context,
 		within features: Features,
-		cache: (FeaturesCache.Entry) -> Void,
+		cache: @Sendable (FeaturesCache.Entry) -> Void,
 		file: StaticString,
 		line: UInt
 	) throws -> Feature
@@ -96,7 +96,7 @@ extension FeaturesFactory {
 
 	#if DEBUG
 		@inline(__always)
-		internal func loaderDebugContext<Feature>(
+		@Sendable internal func loaderDebugContext<Feature>(
 			for featureType: Feature.Type,
 			context: Feature.Context
 		) -> SourceCodeContext?
