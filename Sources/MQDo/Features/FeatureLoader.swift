@@ -436,7 +436,7 @@ extension FeatureLoader {
 						featureType: Feature.self,
 						contextSpecifier: contextSpecifier
 					),
-					load: always(lazyInstance),
+					load: { _, _ in lazyInstance },
 					loadingCompletion: noop,
 					unload: noop  // cache is not required but speeds up access
 				)
@@ -448,7 +448,7 @@ extension FeatureLoader {
 						featureType: Feature.self,
 						contextSpecifier: contextSpecifier
 					),
-					load: always(lazyInstance),
+					load: { _, _ in lazyInstance },
 					loadingCompletion: noop,
 					unload: noop  // cache is not required but speeds up access
 				)
@@ -725,7 +725,7 @@ extension FeatureLoader {
 						featureType: Feature.self,
 						contextSpecifier: .context
 					),
-					load: always(lazyInstance),
+          load: { _, _ in lazyInstance },
 					loadingCompletion: noop,
 					unload: noop  // cache is not required but speeds up access
 				)
@@ -737,7 +737,7 @@ extension FeatureLoader {
 						featureType: Feature.self,
 						contextSpecifier: .context
 					),
-					load: always(lazyInstance),
+					load: { _, _ in lazyInstance },
 					loadingCompletion: noop,
 					unload: noop  // cache is not required but speeds up access
 				)
