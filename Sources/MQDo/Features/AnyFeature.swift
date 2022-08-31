@@ -2,7 +2,7 @@
 ///
 /// ``AnyFeature`` is a type erased base for implementing features.
 /// It should not be used directly to implement features though.
-/// Please use ``LoadableFeature`` for implementing lazy loaded features.
+/// Please use ``DynamicFeature`` for implementing lazy loaded features.
 ///
 /// Feature is an abstract piece of encapsulated, logically connected functions and state.
 /// It can be treated as a fundamental building block for application in object-oriented style.
@@ -16,7 +16,7 @@
 /// which can be defined as a let constants.
 ///
 /// ```swift
-/// struct DiceRoll: LoadableFeature {
+/// struct DiceRoll: DynamicFeature {
 ///   ...
 ///   // this value is constant for the lifetime of feature
 ///   let diceSides: Int
@@ -28,15 +28,15 @@
 /// Feature struct should expose initializer for all of its fields
 /// without any concrete implementation or modifications.
 /// Concrete instance implementations should be defined depending on actual feature type.
-/// For ``LoadableFeature`` it should be provided by ``FeatureLoader`` implementation.
+/// For ``DynamicFeature`` it should be provided by ``FeatureLoader`` implementation.
 /// However environmental features or adapters wrapping external dependencies might provide
 /// concrete implementations that are defined outside of ``FeatureLoader``.
-public protocol AnyFeature {}
+public protocol AnyFeature: Sendable {}
 
 extension AnyFeature {
 
 	// Internal identifier for feature types.
-	internal typealias TypeIdentifier = AnyHashable
+	internal typealias TypeIdentifier = ObjectIdentifier
 
 	internal static var typeIdentifier: TypeIdentifier {
 		ObjectIdentifier(Self.self)

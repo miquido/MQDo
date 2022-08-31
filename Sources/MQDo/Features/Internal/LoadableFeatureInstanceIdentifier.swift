@@ -1,4 +1,4 @@
-internal struct LoadableFeatureInstanceIdentifier {
+internal struct DynamicFeatureInstanceIdentifier {
 
 	private let typeIdentifier: AnyFeature.TypeIdentifier
 	private let contextIdentifier: AnyHashable
@@ -6,21 +6,22 @@ internal struct LoadableFeatureInstanceIdentifier {
 	private init<Feature>(
 		featureType: Feature.Type,
 		context: Feature.Context
-	) where Feature: LoadableFeature {
+	) where Feature: DynamicFeature {
 		self.typeIdentifier = featureType.typeIdentifier
 		self.contextIdentifier = context.identifier
 	}
 }
 
-extension LoadableFeatureInstanceIdentifier: Hashable {}
+extension DynamicFeatureInstanceIdentifier: @unchecked Sendable {}
+extension DynamicFeatureInstanceIdentifier: Hashable {}
 
-extension LoadableFeatureInstanceIdentifier {
+extension DynamicFeatureInstanceIdentifier {
 
 	internal static func instanceIdentifier<Feature>(
 		featureType: Feature.Type,
 		context: Feature.Context
 	) -> Self
-	where Feature: LoadableFeature {
+	where Feature: DynamicFeature {
 		.init(
 			featureType: featureType,
 			context: context

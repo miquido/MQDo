@@ -7,7 +7,7 @@ struct TestDependantFeature {
 	var testString: () -> String
 }
 
-extension TestDependantFeature: ContextlessLoadableFeature {
+extension TestDependantFeature: DynamicContextlessFeature {
 
 	static var mock: Self {
 		.init(

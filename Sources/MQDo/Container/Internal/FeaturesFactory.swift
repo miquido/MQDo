@@ -9,18 +9,20 @@ internal struct FeaturesFactory {
 	}
 }
 
+extension FeaturesFactory: Sendable {}
+
 extension FeaturesFactory {
 
 	@inline(__always)
-	internal func load<Feature>(
+	@Sendable internal func load<Feature>(
 		_ featureType: Feature.Type,
 		context: Feature.Context,
 		within features: Features,
-		cache: (FeaturesCache.Entry) -> Void,
+		cache: @Sendable (FeaturesCache.Entry) -> Void,
 		file: StaticString,
 		line: UInt
 	) throws -> Feature
-	where Feature: LoadableFeature {
+	where Feature: DynamicFeature {
 		do {
 			let featureLoader: FeatureLoader<Feature> =
 				try self
@@ -39,7 +41,7 @@ extension FeaturesFactory {
 					features: features
 				)
 
-			if let unload: LoadableFeatureLoader.Unload = featureLoader.erasedUnload {
+			if let unload: DynamicFeatureLoader.Unload = featureLoader.erasedUnload {
 				#if DEBUG
 					cache(
 						.init(
@@ -53,6 +55,7 @@ extension FeaturesFactory {
 										line: line
 									)
 									.with(context, for: "context")
+									.with(features.branchDescription, for: "branch")
 								),
 							removal: unload
 						)
@@ -65,10 +68,7 @@ extension FeaturesFactory {
 						)
 					)
 				#endif
-			}
-			else {
-				noop()
-			}
+			}  // else ignore cache
 
 			featureLoader
 				.instanceLoadingCompletion(
@@ -91,16 +91,17 @@ extension FeaturesFactory {
 				)
 				.with(Feature.self, for: "feature")
 				.with(context, for: "context")
+				.with(features.branchDescription, for: "branch")
 		}
 	}
 
 	#if DEBUG
 		@inline(__always)
-		internal func loaderDebugContext<Feature>(
+		@Sendable internal func loaderDebugContext<Feature>(
 			for featureType: Feature.Type,
 			context: Feature.Context
 		) -> SourceCodeContext?
-		where Feature: LoadableFeature {
+		where Feature: DynamicFeature {
 			self.registry.debugContext(
 				for: featureType,
 				context: context
