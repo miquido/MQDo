@@ -10,7 +10,7 @@ public struct FeatureUnavailable: TheError {
 	///   - message: Message associated with this error.
 	///   Default value is "FeatureUnavailable".
 	///   - displayableMessage: Message which can be displayed
-	///   to the end user. Default is "Feature unavailable".
+	///   to the end user. Default is based on ``TheErrorDisplayableMessages``.
 	///   - feature: Type of a unavailable feature.
 	///   - file: Source code file identifier.
 	///   Filled automatically based on compile time constants.
@@ -19,7 +19,7 @@ public struct FeatureUnavailable: TheError {
 	/// - Returns: New instance of ``FeatureUnavailable`` error with given context.
 	public static func error(
 		message: StaticString = "FeatureUnavailable",
-		displayableMessage: DisplayableString = "Feature unavailable",
+		displayableMessage: DisplayableString = TheErrorDisplayableMessages.message(for: Self.self),
 		feature: AnyFeature.Type,
 		file: StaticString = #fileID,
 		line: UInt = #line
