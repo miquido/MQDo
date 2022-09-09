@@ -1,21 +1,23 @@
+import MQ
+
 internal struct FeaturesRegistry {
 
-	private var loaders: Dictionary<DynamicFeatureLoaderIdentifier, DynamicFeatureLoader>
+	private var dynamicFeaturesLoaders: Dictionary<DynamicFeatureLoaderIdentifier, DynamicFeatureLoader>
 
 	internal init(
-		loaders: Array<DynamicFeatureLoader> = .init()
+		dynamicFeaturesLoaders: Array<DynamicFeatureLoader> = .init()
 	) {
-		self.loaders = .init()
-		self.loaders.reserveCapacity(loaders.count)
-		for loader: DynamicFeatureLoader in loaders {
-			self.loaders[loader.identifier] = loader
+		self.dynamicFeaturesLoaders = .init()
+		self.dynamicFeaturesLoaders.reserveCapacity(dynamicFeaturesLoaders.count)
+		for loader: DynamicFeatureLoader in dynamicFeaturesLoaders {
+			self.dynamicFeaturesLoaders[loader.identifier] = loader
 		}
 	}
 
 	internal init<Scope>(
 		from scoped: ScopedFeaturesRegistry<Scope>
 	) where Scope: FeaturesScope {
-		self.loaders = scoped.registry.loaders
+		self.dynamicFeaturesLoaders = scoped.registry.dynamicFeaturesLoaders
 	}
 }
 
@@ -31,14 +33,14 @@ extension FeaturesRegistry {
 	where Feature: DynamicFeature {
 		let matchingLoader: DynamicFeatureLoader? =
 			// look for a context specific loader
-			self.loaders[
+			self.dynamicFeaturesLoaders[
 				.loaderIdentifier(
 					featureType: featureType,
 					contextSpecifier: context
 				)
 			]
 			// fallback to general loader if any
-			?? self.loaders[
+			?? self.dynamicFeaturesLoaders[
 				.loaderIdentifier(
 					featureType: featureType,
 					contextSpecifier: .none
@@ -70,14 +72,14 @@ extension FeaturesRegistry {
 	internal mutating func use(
 		loader: DynamicFeatureLoader
 	) {
-		self.loaders[loader.identifier] = loader
+		self.dynamicFeaturesLoaders[loader.identifier] = loader
 	}
 
 	@inline(__always)
 	internal mutating func removeLoader(
 		for identifier: DynamicFeatureLoaderIdentifier
 	) {
-		self.loaders[identifier] = .none
+		self.dynamicFeaturesLoaders[identifier] = .none
 	}
 
 	#if DEBUG
@@ -88,14 +90,14 @@ extension FeaturesRegistry {
 		) -> SourceCodeContext?
 		where Feature: DynamicFeature {
 			// look for a context specific loader
-			(self.loaders[
+			(self.dynamicFeaturesLoaders[
 				.loaderIdentifier(
 					featureType: featureType,
 					contextSpecifier: context
 				)
 			]
 				// fallback to general loader if any
-				?? self.loaders[
+				?? self.dynamicFeaturesLoaders[
 					.loaderIdentifier(
 						featureType: featureType,
 						contextSpecifier: .none
@@ -108,8 +110,8 @@ extension FeaturesRegistry {
 	internal mutating func merge(
 		_ other: FeaturesRegistry
 	) {
-		self.loaders.merge(
-			other.loaders,
+		self.dynamicFeaturesLoaders.merge(
+			other.dynamicFeaturesLoaders,
 			uniquingKeysWith: { $1 }  // always use other
 		)
 	}

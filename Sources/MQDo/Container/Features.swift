@@ -27,6 +27,7 @@ public final class Features {
 	}
 	private let scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry>
 	private let factory: FeaturesFactory
+	private var staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance>
 	private var cache: FeaturesCache
 	private unowned let parent: Features?
 	private let lock: Lock  // shared for the tree
@@ -36,7 +37,8 @@ public final class Features {
 		scopes: Set<FeaturesScope.Identifier>,
 		parent: Features?,
 		registry: FeaturesRegistry,
-		scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry>
+		scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry>,
+		staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance>
 	) {
 		self.lock = lock
 		self.scope = scopes
@@ -44,6 +46,7 @@ public final class Features {
 		self.factory = .init(using: registry)
 		self.cache = .init()
 		self.scopesRegistries = scopesRegistries
+		self.staticFeatures = staticFeatures
 	}
 
 	deinit {
@@ -82,7 +85,8 @@ extension Features {
 			scopes: [RootFeaturesScope.identifier],
 			parent: .none,
 			registry: featuresRegistry.registry,
-			scopesRegistries: featuresRegistry.scopesRegistries
+			scopesRegistries: featuresRegistry.scopesRegistries,
+			staticFeatures: featuresRegistry.staticFeatures
 		)
 	}
 
@@ -175,20 +179,107 @@ extension Features {
 			scopes: Set(scopes.map { $0.identifier }),
 			parent: self,
 			registry: combinedFeaturesRegistry,
-			scopesRegistries: self.scopesRegistries
+			scopesRegistries: self.scopesRegistries,
+			staticFeatures: self.staticFeatures
 		)
 	}
 }
 
 extension Features {
 
-	/// Get an instance of the requested feature if able.
+	/// Access an instance of a ``StaticFeature``.
 	///
-	/// This function allows accessing instances of features.
-	/// Access to the feature depends on provided ``FeatureLoader``
+	/// This function allows for accessing instances of static features.
+	/// Static features are always available and shared
+	/// across fatures container tree. All static features have
+	/// to be defined when initializing root features container.
+	///
+	/// Static features are required to be available. If requested
+	/// feature is not defined for any reason it will result in crash.
+	///
+	/// - Parameters:
+	///   - featureType: Type of requested feature.
+	///   - file: Source code file identifier used to track potential error.
+	///   Filled automatically based on compile time constants.
+	///   - line: Line in given source code file used to track potential error.
+	///   Filled automatically based on compile time constants.
+	/// - Returns: Instance of requested feature resolved by this container.
+	@Sendable public func instance<Feature>(
+		of featureType: Feature.Type = Feature.self,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) -> Feature
+	where Feature: StaticFeature {
+		if let instance: StaticFeatureInstance = self.staticFeatures[Feature.identifier] {
+			if let instance: Feature = instance.instance as? Feature {
+				return instance
+			}
+			else {
+				InternalInconsistency
+					.error(
+						message: "Feature is not matching expected type, please report a bug."
+					)
+					.appending(
+						.message(
+							"Feature instance is invalid",
+							file: file,
+							line: line
+						)
+					)
+					.asFatalError()
+			}
+		}
+		else {
+			#if DEBUG
+				let instance: Feature
+				if self.testingScope {
+					instance = .placeholder
+					self.staticFeatures[Feature.identifier] = .init(
+						instance: instance,
+						implementation: "placeholder",
+						file: file,
+						line: line
+					)
+				}
+				else {
+					instance = .defaultImplementation(
+						file: file,
+						line: line
+					)
+					self.staticFeatures[Feature.identifier] = .init(
+						instance: instance,
+						implementation: "defaultImplementation",
+						file: file,
+						line: line
+					)
+				}
+			#else
+				let instance: Feature = .defaultImplementation(
+					file: file,
+					line: line
+				)
+				self.staticFeatures[Feature.identifier] = .init(
+					instance: instance,
+					implementation: "defaultImplementation",
+					file: file,
+					line: line
+				)
+			#endif
+
+			return instance
+		}
+	}
+}
+
+extension Features {
+
+	/// Access an instance of a ``DynamicFeature``.
+	///
+	/// This function allows accessing instances of dynamic features.
+	/// Access to the feature depends on provided ``FeatureLoader``.
 	/// New instance becomes created each time if needed.
-	/// If the feature supports caching it will be initialized and stored
-	/// if needed. If the feature was not defined for this container
+	/// If the feature supports caching it will be initialized and reused.
+	/// If the feature was not defined for this container
 	/// it will be provided by its parent if able. If no container
 	/// has implementation of requested feature an error will be thrown.
 	///
@@ -309,7 +400,7 @@ extension Features {
 		}
 	}
 
-	/// Get an instance of the requested feature if able.
+	/// Access an instance of a ``DynamicFeature``.
 	///
 	/// This function allows accessing instances of features.
 	/// Access to the feature depends on provided ``FeatureLoader``
@@ -608,8 +699,9 @@ extension Features {
 				lock: .nsRecursiveLock(),
 				scopes: [TestingScope.identifier],
 				parent: .none,
-				registry: .init(loaders: [loader.asAnyLoader]),
-				scopesRegistries: .init()
+				registry: .init(dynamicFeaturesLoaders: [loader.asAnyLoader]),
+				scopesRegistries: .init(),
+				staticFeatures: .init()
 			)
 		}
 

@@ -10,10 +10,6 @@ import MQ
 /// to have implementations defined by ``FeatureLoader``, become dynamically loaded
 /// and resolve its dependencies through ``Features`` container.
 ///
-/// Features using ``Context`` only as a phantom type (to tag types) and ignore
-/// its value (or can't have any value) can use ``TaggedDynamicFeature`` protocol
-/// as a shortcut for defining it without additional boilerplate code.
-///
 /// Features which does not require any context can be implemented by using
 /// ``DynamicContextlessFeature`` protocol which is a shortcut for implementing
 /// it without additional boilerplate code.
