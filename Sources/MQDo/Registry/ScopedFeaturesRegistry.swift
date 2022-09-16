@@ -17,6 +17,7 @@ where Scope: FeaturesScope {
 
 	internal private(set) var registry: FeaturesRegistry
 	// to be used only by RootRegistry
+	internal private(set) var staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance> = .init()
 	private var scopesFeatures: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry> = .init()
 
 	internal init(
@@ -31,7 +32,7 @@ where Scope: FeaturesScope {
 	) {
 		self.init(
 			scope: scope,
-			registry: .init(loaders: .init())
+			registry: .init(dynamicFeaturesLoaders: .init())
 		)
 	}
 }
@@ -105,6 +106,20 @@ where Scope == RootFeaturesScope {
 		registrySetup(&scopeRegistry)
 
 		self.scopesFeatures[DefinedScope.identifier] = scopeRegistry.registry
+	}
+
+	public mutating func use<Feature>(
+		_ implementation: StaticString = #function,
+		static instance: Feature,
+		file: StaticString = #file,
+		line: UInt = #line
+	) where Feature: StaticFeature {
+		self.staticFeatures[instance.identifier] = .init(
+			instance: instance,
+			implementation: implementation,
+			file: file,
+			line: line
+		)
 	}
 
 	internal var scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry> {
