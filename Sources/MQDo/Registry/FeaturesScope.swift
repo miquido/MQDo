@@ -10,7 +10,16 @@ import MQ
 /// will be also deallocated allowing granulated control
 /// over lifetime of features using scopes.
 /// Actual features used by the scope are defined using ``ScopedFeaturesRegistry``.
-public protocol FeaturesScope {}
+public protocol FeaturesScope {
+
+	/// Context associated with the scope.
+	///
+	/// Scope context is a value associated with
+	/// features container using that scope.
+	/// It can be accessed by features loading
+	/// within that container.
+	associatedtype Context
+}
 
 extension FeaturesScope {
 
@@ -20,9 +29,3 @@ extension FeaturesScope {
 		Identifier(scope: Self.self)
 	}
 }
-
-/// Root scope of all feature containers.
-///
-/// Scope type always used by root ``Features`` container instances.
-/// It cannot be used as a container branch.
-public enum RootFeaturesScope: FeaturesScope {}
