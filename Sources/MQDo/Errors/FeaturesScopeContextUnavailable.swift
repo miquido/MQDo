@@ -1,22 +1,23 @@
-/// ``TheError`` for undefined feature scopes.
+/// ``TheError`` for unavailable feature scopes contexts.
 ///
-/// ``FeaturesScopeUndefined`` error can occur when asking for a features scope
-/// which was not defined for given features tree.
-public struct FeaturesScopeUndefined: TheError {
+/// ``FeaturesScopeContextUnavailable`` error can occur when asking for a features scope context
+/// which was not present in a given features tree or
+/// not available due to some other reason.
+public struct FeaturesScopeContextUnavailable: TheError {
 
-	/// Create instance of ``FeaturesScopeUndefined`` error.
+	/// Create instance of ``FeaturesScopeContextUnavailable`` error.
 	///
 	/// - Parameters
 	///   - message: Message associated with this error.
-	///   Default value is "FeaturesScopeUndefined".
+	///   Default value is "FeaturesScopeContextUnavailable".
 	///   - scope: Type of a undefined scope.
 	///   - file: Source code file identifier.
 	///   Filled automatically based on compile time constants.
 	///   - line: Line in given source code file.
 	///   Filled automatically based on compile time constants.
-	/// - Returns: New instance of ``FeaturesScopeUndefined`` error with given context.
+	/// - Returns: New instance of ``FeaturesScopeContextUnavailable`` error with given context.
 	public static func error<Scope>(
-		message: StaticString = "FeaturesScopeUndefined",
+		message: StaticString = "FeaturesScopeContextUnavailable",
 		scope: Scope.Type,
 		file: StaticString = #fileID,
 		line: UInt = #line
@@ -28,7 +29,7 @@ public struct FeaturesScopeUndefined: TheError {
 				file: file,
 				line: line
 			)
-			.with(scope, for: "undefined scope")
+			.with(scope, for: "unavailable scope context")
 		)
 	}
 

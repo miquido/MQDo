@@ -21,27 +21,35 @@ import MQ
 /// If requested feature is not defined in current tree branch it fails to load with an error.
 public final class Features {
 
-	private let scope: Set<FeaturesScope.Identifier>
+	private let scope: FeaturesScope.Identifier
 	private var combinedScopes: Set<FeaturesScope.Identifier> {
-		self.scope.union(self.parent?.combinedScopes ?? .init())
+		Set<FeaturesScope.Identifier>([self.scope]).union(self.parent?.combinedScopes ?? .init())
 	}
+	#if DEBUG
+		private var scopeContext: Any
+		private var staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance>
+	#else
+		private let scopeContext: Any
+		private let staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance>
+	#endif
 	private let scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry>
 	private let factory: FeaturesFactory
-	private var staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance>
 	private var cache: FeaturesCache
 	private unowned let parent: Features?
 	private let lock: Lock  // shared for the tree
 
 	private init(
 		lock: Lock,
-		scopes: Set<FeaturesScope.Identifier>,
+		scope: FeaturesScope.Identifier,
+		scopeContext: Any,
 		parent: Features?,
 		registry: FeaturesRegistry,
 		scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry>,
 		staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance>
 	) {
 		self.lock = lock
-		self.scope = scopes
+		self.scope = scope
+		self.scopeContext = scopeContext
 		self.parent = parent
 		self.factory = .init(using: registry)
 		self.cache = .init()
@@ -82,7 +90,8 @@ extension Features {
 
 		return .init(
 			lock: .nsRecursiveLock(),
-			scopes: [RootFeaturesScope.identifier],
+			scope: RootFeaturesScope.identifier,
+			scopeContext: Void(),
 			parent: .none,
 			registry: featuresRegistry.registry,
 			scopesRegistries: featuresRegistry.scopesRegistries,
@@ -120,7 +129,7 @@ extension Features {
 			scopesToCheck = self.combinedScopes
 		}
 		else {
-			scopesToCheck = self.scope
+			scopesToCheck = [self.scope]
 		}
 
 		#if DEBUG
@@ -131,57 +140,113 @@ extension Features {
 		#endif
 	}
 
-	/// Create new container branch with provided scopes.
+	/// Create new container branch with provided scope.
 	///
 	/// - Parameters:
-	///   - scope: First scope of new child container (new branch).
-	///   - scopes: Tail (rest) of new child container scopes.
-	///   In case of conflicting features definitions resolved
-	///   implementation will be the last one provided (from last
-	///   scope in argument list containing conflicting feature).
+	///   - scope: Scope of new child container (new branch).
 	/// - Returns: New instance of ``Features`` container using
-	/// provided scopes and combined features registry.
-	@_disfavoredOverload @Sendable public func branch(
-		scope: any FeaturesScope.Type,
-		_ scopes: any FeaturesScope.Type...
-	) -> Features {
+	/// provided scope and context value.
+	@_disfavoredOverload @Sendable public func branch<Scope>(
+		_ scope: Scope.Type
+	) throws -> Features
+	where Scope: FeaturesScope, Scope.Context == Void {
+		try self.branch(
+			Scope.self,
+			context: Void()
+		)
+	}
+
+	/// Create new container branch with provided scope.
+	///
+	/// - Parameters:
+	///   - scope: Scope of new child container (new branch).
+	///   - context: Context value for the new scope container.
+	/// - Returns: New instance of ``Features`` container using
+	/// provided scope and context value.
+	@_disfavoredOverload @Sendable public func branch<Scope>(
+		_ scope: Scope.Type,
+		context: Scope.Context
+	) throws -> Features
+	where Scope: FeaturesScope {
 		#if DEBUG
-			guard !self.testingScope else { return self }
+			guard !self.testingScope else {
+				var contexts: Dictionary<AnyHashable, Any> = self.scopeContext as! Dictionary<AnyHashable, Any>
+				contexts[ObjectIdentifier(Scope.self)] = context
+				self.scopeContext = contexts
+				return self
+			}
 		#endif
 
-		let scopes: Array<FeaturesScope.Type> = [scope] + scopes
-
-		runtimeAssert(
-			!scopes.contains { $0 == RootFeaturesScope.self },
-			message: "Cannot use RootFeaturesScope for a child container!"
-		)
-
-		var combinedFeaturesRegistry: FeaturesRegistry = .init()
-
-		for scope in scopes {
-			if let scopeRegistry: FeaturesRegistry = self.scopesRegistries[scope.identifier] {
-				combinedFeaturesRegistry.merge(scopeRegistry)
-			}
-			else {
+		guard let scopeRegistry: FeaturesRegistry = self.scopesRegistries[scope.identifier]
+		else {
+			throw
 				FeaturesScopeUndefined
-					.error(
-						message: "Please define all required scopes on root features registry.",
-						scope: scope
-					)
-					.asAssertionFailure()
-
-				// ignore undefined scopes on nondebug builds
-			}
+				.error(
+					message: "Please define all required scopes on root features registry.",
+					scope: scope
+				)
+				.asRuntimeWarning()
 		}
 
 		return .init(
 			lock: self.lock,
-			scopes: Set(scopes.map { $0.identifier }),
+			scope: scope.identifier,
+			scopeContext: context,
 			parent: self,
-			registry: combinedFeaturesRegistry,
+			registry: scopeRegistry,
 			scopesRegistries: self.scopesRegistries,
 			staticFeatures: self.staticFeatures
 		)
+	}
+
+	/// Access a context value associated with scope.
+	///
+	/// This function allows to accessing context values
+	/// of scopes in current container tree. It will throw
+	/// an error if requested scope was not used in the tree.
+	///
+	/// - Parameters:
+	///   - scopeType: Type of requested scope.
+	///   - file: Source code file identifier used to track potential error.
+	///   Filled automatically based on compile time constants.
+	///   - line: Line in given source code file used to track potential error.
+	///   Filled automatically based on compile time constants.
+	/// - Returns: Context value for requested scope if any.
+	@Sendable public func context<Scope>(
+		for scopeType: Scope.Type,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) throws -> Scope.Context
+	where Scope: FeaturesScope {
+		#if DEBUG
+			guard !self.testingScope else {
+				let contexts: Dictionary<AnyHashable, Any> = self.scopeContext as! Dictionary<AnyHashable, Any>
+				if let context: Scope.Context = contexts[ObjectIdentifier(Scope.self)] as? Scope.Context {
+					return context
+				}
+				else {
+					throw
+						FeaturesScopeContextUnavailable
+						.error(
+							scope: Scope.self,
+							file: file,
+							line: line
+						)
+				}
+			}
+		#endif
+		if let context: Scope.Context = self.scopeContext as? Scope.Context {
+			return context
+		}
+		else if let parent: Features = self.parent {
+			return try parent.context(for: Scope.self)
+		}
+		else {
+			throw
+				FeaturesScopeContextUnavailable
+				.error(scope: Scope.self)
+				.asRuntimeWarning()
+		}
 	}
 }
 
@@ -253,20 +318,13 @@ extension Features {
 						line: line
 					)
 				}
+				return instance
 			#else
-				let instance: Feature = .defaultImplementation(
-					file: file,
-					line: line
-				)
-				self.staticFeatures[Feature.identifier] = .init(
-					instance: instance,
-					implementation: "defaultImplementation",
+				return .defaultImplementation(
 					file: file,
 					line: line
 				)
 			#endif
-
-			return instance
 		}
 	}
 }
@@ -697,7 +755,8 @@ extension Features {
 		where Feature: DynamicFeature {
 			.init(
 				lock: .nsRecursiveLock(),
-				scopes: [TestingScope.identifier],
+				scope: TestingScope.identifier,
+				scopeContext: Dictionary<AnyHashable, Any>(),
 				parent: .none,
 				registry: .init(dynamicFeaturesLoaders: [loader.asAnyLoader]),
 				scopesRegistries: .init(),
@@ -706,7 +765,7 @@ extension Features {
 		}
 
 		private var testingScope: Bool {
-			self.scope.contains(TestingScope.identifier)
+			self.scope == TestingScope.identifier
 		}
 
 		/// Force given instance in branch cache.
@@ -1115,6 +1174,43 @@ extension Features {
 			)
 		}
 
+		/// Set scope context.
+		///
+		/// Assign context value for a given scope.
+		/// This function allows to setup test environment
+		/// properly with scope context mocking. It has no
+		/// effect in nondebug builds and nontesting containers.
+		///
+		/// - Parameters
+		///   - context: Context value to be assigned.
+		///   - scopeType: Type of scope to be used.
+		///   - file: Source code file identifier used to track potential error.
+		///   Filled automatically based on compile time constants.
+		///   - line: Line in given source code file used to track potential error.
+		///   Filled automatically based on compile time constants.
+		@Sendable public func setContext<Scope>(
+			_ context: Scope.Context,
+			for scopeType: Scope.Type,
+			file: StaticString = #fileID,
+			line: UInt = #line
+		) where Scope: FeaturesScope {
+			if self.testingScope {
+				var contexts: Dictionary<AnyHashable, Any> = self.scopeContext as! Dictionary<AnyHashable, Any>
+				contexts[ObjectIdentifier(Scope.self)] = context
+				return self.scopeContext = contexts
+			}
+			else {
+				FeaturesScopeContextUnavailable
+					.error(
+						message: "Context patching is available only to test containers.",
+						scope: Scope.self,
+						file: file,
+						line: line
+					)
+					.asRuntimeWarning()
+			}
+		}
+
 		/// Remove all currently cached feature instances from cache.
 		///
 		/// Clearing cache can be used for debugging and testing.
@@ -1130,6 +1226,9 @@ extension Features {
 
 #if DEBUG
 
-	private enum TestingScope: FeaturesScope {}
+	private enum TestingScope: FeaturesScope {
+
+		typealias Context = Never
+	}
 
 #endif

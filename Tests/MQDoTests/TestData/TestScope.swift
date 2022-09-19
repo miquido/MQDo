@@ -1,3 +1,3 @@
 import MQDo
 
-enum TestScope: FeaturesScope {}
+enum TestScope: FeaturesContextlessScope {}

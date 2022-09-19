@@ -1,6 +1,6 @@
 internal struct FeaturesScopeIdentifier {
 
-	internal let scope: FeaturesScope.Type
+	internal let scope: Any.Type
 	private let identifier: ObjectIdentifier
 
 	internal init<Scope>(
