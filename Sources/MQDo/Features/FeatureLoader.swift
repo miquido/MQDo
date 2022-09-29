@@ -59,11 +59,6 @@ extension FeatureLoader {
 	///
 	/// - Parameters:
 	///   - featureType: Type of the feature provided by created loader.
-	///   - contextSpecifier: Optional context specification, allows to use
-	///   different implementation based on context value. If set to none
-	///   loader will be used as a general default implementation for the
-	///   features with any context value (except those specified which
-	///   have priority). Default is none.
 	///   - implementation: Name of given implementation used to identify feature implementation.
 	///   By default it is name of a function enclosing invocation of this function.
 	///   - load: Function which produces new instances of given feature.
@@ -80,7 +75,6 @@ extension FeatureLoader {
 	/// - Returns: Instance of ``FeatureLoader`` providing lazy loaded implementation of given feature.
 	@_disfavoredOverload public static func lazyLoaded(
 		_ featureType: Feature.Type = Feature.self,
-		contextSpecifier: Feature.Context? = .none,
 		implementation: StaticString = #function,
 		load: @escaping @Sendable (_ context: Feature.Context, _ container: Features) throws -> Feature,
 		loadingCompletion: @escaping @Sendable (_ instance: Feature, _ context: Feature.Context, _ container: Features) ->
@@ -93,7 +87,7 @@ extension FeatureLoader {
 	where Feature: DynamicFeature {
 		@Sendable func featureLoad(
 			context: Any,  // DynamicFeatureContext
-			using features: Features
+			using container: FeaturesContainer
 		) throws -> AnyFeature {
 			guard let context: Feature.Context = context as? Feature.Context
 			else {
@@ -112,30 +106,13 @@ extension FeatureLoader {
 					.asAssertionFailure()
 			}
 
-			guard contextSpecifier.map({ $0.identifier == context.identifier }) ?? true
-			else {
-				throw
-					InternalInconsistency
-					.error(message: "Feature context value is not matching expected, please report a bug.")
-					.with(contextSpecifier, for: "expected")
-					.with(context, for: "received")
-					.appending(
-						.message(
-							"FeatureLoader is invalid",
-							file: file,
-							line: line
-						)
-					)
-					.asAssertionFailure()
-			}
-
-			return try load(context, features)
+			return try load(context, container.features)
 		}
 
 		@Sendable func featureLoadingCompletion(
 			_ feature: AnyFeature,
 			context: Any,  // DynamicFeatureContext
-			using features: Features
+			using container: FeaturesContainer
 		) {
 			guard let feature: Feature = feature as? Feature
 			else {
@@ -169,7 +146,7 @@ extension FeatureLoader {
 					.asFatalError()
 			}
 
-			loadingCompletion(feature, context, features)
+			loadingCompletion(feature, context, container.features)
 		}
 
 		@Sendable func featureUnload(
@@ -206,8 +183,7 @@ extension FeatureLoader {
 					.with(implementation, for: "implementation")
 					.with(true, for: "cache"),
 					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: contextSpecifier
+						featureType: Feature.self
 					),
 					load: featureLoad(context:using:),
 					loadingCompletion: featureLoadingCompletion(_:context:using:),
@@ -217,10 +193,7 @@ extension FeatureLoader {
 		#else
 			return Self(
 				from: DynamicFeatureLoader(
-					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: contextSpecifier
-					),
+					identifier: .init(featureType: Feature.self),
 					load: featureLoad(context:using:),
 					loadingCompletion: featureLoadingCompletion(_:context:using:),
 					unload: featureUnload(_:)
@@ -237,11 +210,6 @@ extension FeatureLoader {
 	///
 	/// - Parameters:
 	///   - featureType: Type of the feature provided by created loader.
-	///   - contextSpecifier: Optional context specification, allows to use
-	///   different implementation based on context value. If set to none
-	///   loader will be used as a general default implementation for the
-	///   features with any context value (except those specified which
-	///   have priority). Default is none.
 	///   - implementation: Name of given implementation used to identify feature implementation.
 	///   By default it is name of a function enclosing invocation of this function.
 	///   - load: Function which produces new instances of given feature.
@@ -255,7 +223,6 @@ extension FeatureLoader {
 	/// - Returns: Instance of ``FeatureLoader`` providing disposable implementation of given feature.
 	@_disfavoredOverload public static func disposable(
 		_ featureType: Feature.Type = Feature.self,
-		contextSpecifier: Feature.Context? = .none,
 		implementation: StaticString = #function,
 		load: @escaping @Sendable (_ context: Feature.Context, _ container: Features) throws -> Feature,
 		loadingCompletion: @escaping @Sendable (_ instance: Feature, _ context: Feature.Context, _ container: Features) ->
@@ -267,7 +234,7 @@ extension FeatureLoader {
 	where Feature: DynamicFeature {
 		@Sendable func featureLoad(
 			context: Any,  // DynamicFeatureContext
-			using features: Features
+			using container: FeaturesContainer
 		) throws -> AnyFeature {
 			guard let context: Feature.Context = context as? Feature.Context
 			else {
@@ -286,30 +253,13 @@ extension FeatureLoader {
 					.asAssertionFailure()
 			}
 
-			guard contextSpecifier.map({ $0.identifier == context.identifier }) ?? true
-			else {
-				throw
-					InternalInconsistency
-					.error(message: "Feature context value is not matching expected, please report a bug.")
-					.with(contextSpecifier, for: "expected")
-					.with(context, for: "received")
-					.appending(
-						.message(
-							"FeatureLoader is invalid",
-							file: file,
-							line: line
-						)
-					)
-					.asAssertionFailure()
-			}
-
-			return try load(context, features)
+			return try load(context, container.features)
 		}
 
 		@Sendable func featureLoadingCompletion(
 			_ feature: AnyFeature,
 			context: Any,  // DynamicFeatureContext
-			using features: Features
+			using container: FeaturesContainer
 		) {
 			guard let feature: Feature = feature as? Feature
 			else {
@@ -343,7 +293,7 @@ extension FeatureLoader {
 					.asFatalError()
 			}
 
-			loadingCompletion(feature, context, features)
+			loadingCompletion(feature, context, container.features)
 		}
 
 		#if DEBUG
@@ -358,8 +308,7 @@ extension FeatureLoader {
 					.with(implementation, for: "implementation")
 					.with(false, for: "cache"),
 					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: contextSpecifier
+						featureType: Feature.self
 					),
 					load: featureLoad(context:using:),
 					loadingCompletion: featureLoadingCompletion(_:context:using:),
@@ -369,106 +318,10 @@ extension FeatureLoader {
 		#else
 			return Self(
 				from: DynamicFeatureLoader(
-					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: contextSpecifier
-					),
+					identifier: .init(featureType: Feature.self),
 					load: featureLoad(context:using:),
 					loadingCompletion: featureLoadingCompletion(_:context:using:),
 					unload: .none
-				)
-			)
-		#endif
-	}
-
-	/// Make instance of loader for lazily loaded constant feature.
-	///
-	/// Lazy constant feature loader provides implementation of features which instances are
-	/// constant but lazily loaded during application lifetime. Constant features are always
-	/// cached inside ``Features`` container but it always returns the same instance of a feature anyway.
-	///
-	/// - Note: ``Context`` is used to identify instances based
-	/// on its value. Make sure that you define constant for each
-	/// required context value.
-	///
-	/// - Parameters:
-	///   - featureType: Type of the feature provided by created loader.
-	///   - contextSpecifier: Feature context value for which constant will be used.
-	///   - implementation: Name of given implementation used to identify feature implementation.
-	///   By default it is name of a function enclosing invocation of this function.
-	///   - instance: Instance of a feature to be used as its implementation. It is wrapped
-	///   by autoclosure to lazily initialize the instance. Feature will be initialized only on demand. The same instance will be used for all feature instance requests.
-	///   - loadingCompletion: Function allowing to execute initial operations after loading
-	///   instance of feature. This function will be called only once
-	///   after first request for the feature instance.
-	///   Default implementation does nothing.
-	///   - file: Source code file identifier used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	///   - line: Line in given source code file used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	/// - Returns: Instance of ``FeatureLoader`` providing constant implementation of a given feature.
-	@_disfavoredOverload public static func constant(
-		_ featureType: Feature.Type = Feature.self,
-		contextSpecifier: Feature.Context,
-		implementation: StaticString = #function,
-		instance: @autoclosure @escaping () -> Feature,
-		loadingCompletion: @escaping (_ instance: Feature) -> Void = noop,
-		file: StaticString = #fileID,
-		line: UInt = #line
-	) -> Self
-	where Feature: DynamicFeature {
-		let lazyInstance: LazyInstance<Feature> = .init(
-			{
-				let feature: Feature = instance()
-				loadingCompletion(feature)
-				return feature
-			},
-			file: file,
-			line: line
-		)
-
-		@Sendable func load(
-			context: Any,  // DynamicFeatureContext
-			features: Features
-		) -> AnyFeature {
-			do {
-				return try lazyInstance.instance
-			}
-			catch {
-				unreachable("Constant feature can't throw when lazily loading")
-			}
-		}
-
-		#if DEBUG
-			return Self(
-				from: DynamicFeatureLoader(
-					debugContext: .context(
-						message: "FeatureLoader.constant",
-						file: file,
-						line: line
-					)
-					.with(featureType, for: "feature")
-					.with(implementation, for: "implementation")
-					.with(true, for: "cache"),
-					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: contextSpecifier
-					),
-					load: load(context:features:),
-					loadingCompletion: noop,
-					unload: noop  // cache is not required but speeds up access
-				)
-			)
-		#else
-			return Self(
-				from: DynamicFeatureLoader(
-					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: contextSpecifier
-					),
-					load: load(context:features:),
-					loadingCompletion: noop,
-					unload: noop  // cache is not required but speeds up access
 				)
 			)
 		#endif
@@ -511,15 +364,15 @@ extension FeatureLoader {
 	where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
 		@Sendable func featureLoad(
 			context _: Any,  // placeholder
-			using features: Features
+			using container: FeaturesContainer
 		) throws -> AnyFeature {
-			try load(features)
+			try load(container.features)
 		}
 
 		@Sendable func featureLoadingCompletion(
 			_ feature: AnyFeature,
 			context _: Any,  // placeholder
-			using features: Features
+			using container: FeaturesContainer
 		) {
 			guard let feature: Feature = feature as? Feature
 			else {
@@ -537,7 +390,7 @@ extension FeatureLoader {
 					.asFatalError()
 			}
 
-			loadingCompletion(feature, features)
+			loadingCompletion(feature, container.features)
 		}
 
 		@Sendable func featureUnload(
@@ -574,8 +427,7 @@ extension FeatureLoader {
 					.with(implementation, for: "implementation")
 					.with(true, for: "cache"),
 					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: .context
+						featureType: Feature.self
 					),
 					load: featureLoad(context:using:),
 					loadingCompletion: featureLoadingCompletion(_:context:using:),
@@ -585,10 +437,7 @@ extension FeatureLoader {
 		#else
 			return Self(
 				from: DynamicFeatureLoader(
-					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: .context
-					),
+					identifier: .init(featureType: Feature.self),
 					load: featureLoad(context:using:),
 					loadingCompletion: featureLoadingCompletion(_:context:using:),
 					unload: featureUnload(_:)
@@ -627,15 +476,15 @@ extension FeatureLoader {
 	where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
 		@Sendable func featureLoad(
 			context _: Any,  // placeholder
-			using features: Features
+			using container: FeaturesContainer
 		) throws -> AnyFeature {
-			try load(features)
+			try load(container.features)
 		}
 
 		@Sendable func featureLoadingCompletion(
 			_ feature: AnyFeature,
 			context _: Any,  // placeholder
-			using features: Features
+			using container: FeaturesContainer
 		) {
 			guard let feature: Feature = feature as? Feature
 			else {
@@ -653,7 +502,7 @@ extension FeatureLoader {
 					.asFatalError()
 			}
 
-			loadingCompletion(feature, features)
+			loadingCompletion(feature, container.features)
 		}
 
 		#if DEBUG
@@ -668,8 +517,7 @@ extension FeatureLoader {
 					.with(implementation, for: "implementation")
 					.with(false, for: "cache"),
 					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: .context
+						featureType: Feature.self
 					),
 					load: featureLoad(context:using:),
 					loadingCompletion: featureLoadingCompletion(_:context:using:),
@@ -679,101 +527,10 @@ extension FeatureLoader {
 		#else
 			return Self(
 				from: DynamicFeatureLoader(
-					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: .context
-					),
+					identifier: .init(featureType: Feature.self),
 					load: featureLoad(context:using:),
 					loadingCompletion: featureLoadingCompletion(_:context:using:),
 					unload: .none
-				)
-			)
-		#endif
-	}
-
-	/// Make instance of loader for lazily loaded constant feature.
-	///
-	/// Lazy constant feature loader provides implementation of features which instances are
-	/// constant but lazily loaded during application lifetime. Constant features are always
-	/// cached inside ``Features`` container but it always returns the same instance of a feature anyway.
-	///
-	///
-	/// - Parameters:
-	///   - featureType: Type of the feature provided by created loader.
-	///   - implementation: Name of given implementation used to identify feature implementation.
-	///   By default it is name of a function enclosing invocation of this function.
-	///   - instance: Instance of a feature to be used as its implementation. It is wrapped
-	///   by autoclosure to lazily initialize the instance. Feature will be initialized only on demand. The same instance will be used for all feature instance requests.
-	///   - loadingCompletion: Function allowing to execute initial operations after loading
-	///   instance of feature. This function will be called only once
-	///   after first request for the feature instance.
-	///   Default implementation does nothing.
-	///   - file: Source code file identifier used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	///   - line: Line in given source code file used to identify feature implementation.
-	///   Filled automatically based on compile time constants.
-	/// - Returns: Instance of ``FeatureLoader`` providing constant implementation of a given feature.
-	public static func constant(
-		_ featureType: Feature.Type = Feature.self,
-		implementation: StaticString = #function,
-		instance: @autoclosure @escaping () -> Feature,
-		loadingCompletion: @escaping (Feature) -> Void = noop,
-		file: StaticString = #fileID,
-		line: UInt = #line
-	) -> Self
-	where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
-		let lazyInstance: LazyInstance<Feature> = .init(
-			{
-				let feature: Feature = instance()
-				loadingCompletion(feature)
-				return feature
-			},
-			file: file,
-			line: line
-		)
-
-		@Sendable func load(
-			context: Any,  // DynamicFeatureContext
-			features: Features
-		) -> AnyFeature {
-			do {
-				return try lazyInstance.instance
-			}
-			catch {
-				unreachable("Constant feature can't throw when lazily loading")
-			}
-		}
-
-		#if DEBUG
-			return Self(
-				from: DynamicFeatureLoader(
-					debugContext: .context(
-						message: "FeatureLoader.constant",
-						file: file,
-						line: line
-					)
-					.with(featureType, for: "feature")
-					.with(implementation, for: "implementation")
-					.with(true, for: "cache"),
-					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: .context
-					),
-					load: load(context:features:),
-					loadingCompletion: noop,
-					unload: noop  // cache is not required but speeds up access
-				)
-			)
-		#else
-			return Self(
-				from: DynamicFeatureLoader(
-					identifier: .init(
-						featureType: Feature.self,
-						contextSpecifier: .context
-					),
-					load: load(context:features:),
-					loadingCompletion: noop,
-					unload: noop  // cache is not required but speeds up access
 				)
 			)
 		#endif
@@ -790,10 +547,10 @@ extension FeatureLoader {
 	@inline(__always)
 	@Sendable internal func loadInstance(
 		context: Feature.Context,
-		features: Features
+		container: FeaturesContainer
 	) throws -> Feature
 	where Feature: DynamicFeature {
-		let loadedFeature: AnyFeature = try self.loader.load(context, features)
+		let loadedFeature: AnyFeature = try self.loader.load(context, container)
 
 		guard let feature: Feature = loadedFeature as? Feature
 		else {
@@ -812,13 +569,13 @@ extension FeatureLoader {
 	@Sendable internal func instanceLoadingCompletion(
 		_ instance: Feature,
 		context: Feature.Context,
-		features: Features
+		container: FeaturesContainer
 	) where Feature: DynamicFeature {
 		self.loader
 			.loadingCompletion(
 				instance,
 				context,
-				features
+				container
 			)
 	}
 
@@ -836,15 +593,13 @@ extension DynamicFeatureLoader {
 		line: UInt = #line
 	) throws -> FeatureLoader<Feature>
 	where Feature: DynamicFeature {
-		guard self.identifier.matches(featureType: Feature.self, contextSpecifier: context)
+		guard self.identifier.matches(featureType: Feature.self)
 		else {
 			throw
 				InternalInconsistency
 				.error(message: "Feature loader is not matching expected, please report a bug.")
 				.with(Feature.typeDescription, for: "expected")
 				.with(self.identifier.typeDescription, for: "received")
-				.with(context, for: "expected context")
-				.with(self.identifier.contextDescription, for: "received context")
 				.asAssertionFailure()
 		}
 

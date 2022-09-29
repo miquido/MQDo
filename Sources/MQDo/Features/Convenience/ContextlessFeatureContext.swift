@@ -4,13 +4,7 @@
 /// which allows to ignore feature context types and values.
 public struct ContextlessFeatureContext {
 
-	/// Instance of ``ContextlessFeatureContext``.
-	///
-	/// You can use this instance as a placeholder
-	/// for feature context when using ``DynamicContextlessFeature``.
-	/// All instances of the ``ContextlessFeatureContext`` with
-	/// type are treated as equal.
-	public static var context: Self { .init() }
+	internal static var context: Self { .init() }
 
 	private init() {}
 }

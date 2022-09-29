@@ -1,9 +1,9 @@
 internal struct FeaturesFactory {
 
-	private let registry: FeaturesRegistry
+	private let registry: DynamicFeaturesRegistry
 
 	internal init(
-		using registry: FeaturesRegistry
+		using registry: DynamicFeaturesRegistry
 	) {
 		self.registry = registry
 	}
@@ -17,7 +17,7 @@ extension FeaturesFactory {
 	@Sendable internal func load<Feature>(
 		_ featureType: Feature.Type,
 		context: Feature.Context,
-		within features: Features,
+		within container: FeaturesContainer,
 		cache: @Sendable (FeaturesCache.Entry) -> Void,
 		file: StaticString,
 		line: UInt
@@ -38,7 +38,7 @@ extension FeaturesFactory {
 				try featureLoader
 				.loadInstance(
 					context: context,
-					features: features
+					container: container
 				)
 
 			if let unload: DynamicFeatureLoader.Unload = featureLoader.erasedUnload {
@@ -55,7 +55,7 @@ extension FeaturesFactory {
 										line: line
 									)
 									.with(context, for: "context")
-									.with(features.branchDescription, for: "branch")
+									.with(container.branchDescription, for: "branch")
 								),
 							removal: unload
 						)
@@ -74,7 +74,7 @@ extension FeaturesFactory {
 				.instanceLoadingCompletion(
 					feature,
 					context: context,
-					features: features
+					container: container
 				)
 
 			return feature
@@ -91,7 +91,7 @@ extension FeaturesFactory {
 				)
 				.with(Feature.self, for: "feature")
 				.with(context, for: "context")
-				.with(features.branchDescription, for: "branch")
+				.with(container.branchDescription, for: "branch")
 		}
 	}
 

@@ -7,11 +7,12 @@ import MQ
 /// of features, scoping access to it, caching feature instances and resolving
 /// dependencies across the application.
 ///
-/// Each instance of ``Features`` is associated with at least one type of ``FeaturesScope``.
+/// Each instance of ``Features`` is associated with a type of ``FeaturesScope``.
 /// It is used to distinguish scopes and available features in the application. Each container
 /// has to be created as either root or branch of other existing container. It is allowed to have
 /// multiple root containers and multiple instances of container with the same scope within single tree.
-/// It is also allowed to have multiple branches inside single tree.
+/// However it is allowed to have multiple trees at the same time.
+/// It is also allowed to have multiple branches inside a single tree.
 ///
 /// Each ``Features`` container is allowed to create and cache only instances of features that
 /// were defined for its scope when creating root container or added when creating child for a branch.
@@ -20,50 +21,21 @@ import MQ
 /// If it is not defined locally it will be provided from parent containers if able.
 /// If requested feature is not defined in current tree branch it fails to load with an error.
 public final class Features {
+	// Features is temporarily a class, it will be converted
+	// to a struct with new memory management of branches.
+	private let treeLock: Lock
+	private let container: FeaturesContainer?
 
-	private let scope: FeaturesScope.Identifier
-	private var combinedScopes: Set<FeaturesScope.Identifier> {
-		Set<FeaturesScope.Identifier>([self.scope]).union(self.parent?.combinedScopes ?? .init())
-	}
-	#if DEBUG
-		private var scopeContext: Any
-		private var staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance>
-	#else
-		private let scopeContext: Any
-		private let staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance>
-	#endif
-	private let scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry>
-	private let factory: FeaturesFactory
-	private var cache: FeaturesCache
-	private unowned let parent: Features?
-	private let lock: Lock  // shared for the tree
-
-	private init(
-		lock: Lock,
-		scope: FeaturesScope.Identifier,
-		scopeContext: Any,
-		parent: Features?,
-		registry: FeaturesRegistry,
-		scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry>,
-		staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance>
+	internal init(
+		treeLock: Lock,
+		container: FeaturesContainer
 	) {
-		self.lock = lock
-		self.scope = scope
-		self.scopeContext = scopeContext
-		self.parent = parent
-		self.factory = .init(using: registry)
-		self.cache = .init()
-		self.scopesRegistries = scopesRegistries
-		self.staticFeatures = staticFeatures
-	}
-
-	deinit {
-		// ensure proper unloading of features
-		self.cache.clear()
+		self.treeLock = treeLock
+		self.container = container
 	}
 }
 
-extension Features: @unchecked Sendable {}
+extension Features: Sendable {}
 
 extension Features {
 
@@ -84,19 +56,10 @@ extension Features {
 	/// implementation.
 	public static func root(
 		registry: ScopedFeaturesRegistry<RootFeaturesScope>.SetupFunction
-	) -> Self {
-		var featuresRegistry: ScopedFeaturesRegistry<RootFeaturesScope> = .init()
-		registry(&featuresRegistry)
-
-		return .init(
-			lock: .nsRecursiveLock(),
-			scope: RootFeaturesScope.identifier,
-			scopeContext: Void(),
-			parent: .none,
-			registry: featuresRegistry.registry,
-			scopesRegistries: featuresRegistry.scopesRegistries,
-			staticFeatures: featuresRegistry.staticFeatures
-		)
+	) -> Features {
+		FeaturesContainer
+			.root(registry: registry)
+			.features
 	}
 
 	/// Verify scope of the container.
@@ -123,36 +86,34 @@ extension Features {
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Bool where Scope: FeaturesScope {
-		let scopesToCheck: Set<FeaturesScope.Identifier>
-
-		if checkRecursively {
-			scopesToCheck = self.combinedScopes
-		}
-		else {
-			scopesToCheck = [self.scope]
-		}
-
-		#if DEBUG
-			return scopesToCheck.contains(scope.identifier)
-				|| self.testingScope
-		#else
-			return scopesToCheck.contains(scope.identifier)
-		#endif
+		self.container?
+			.containsScope(
+				scope,
+				checkRecursively: checkRecursively,
+				file: file,
+				line: line
+			)
+			?? false
 	}
 
 	/// Create new container branch with provided scope.
 	///
-	/// - Parameters:
-	///   - scope: Scope of new child container (new branch).
+	/// - Parameter scope: Scope of new child container (new branch).
 	/// - Returns: New instance of ``Features`` container using
 	/// provided scope and context value.
+	/// - Throws: When requested scope is not defined in root registry
+	/// ``FeaturesScopeUndefined`` error is thrown.
 	@_disfavoredOverload @Sendable public func branch<Scope>(
-		_ scope: Scope.Type
+		_ scope: Scope.Type,
+		file: StaticString = #fileID,
+		line: UInt = #line
 	) throws -> Features
 	where Scope: FeaturesScope, Scope.Context == Void {
 		try self.branch(
 			Scope.self,
-			context: Void()
+			context: Void(),
+			file: file,
+			line: line
 		)
 	}
 
@@ -163,40 +124,34 @@ extension Features {
 	///   - context: Context value for the new scope container.
 	/// - Returns: New instance of ``Features`` container using
 	/// provided scope and context value.
+	/// - Throws: When requested scope is not defined in root registry
+	/// ``FeaturesScopeUndefined`` error is thrown.
 	@_disfavoredOverload @Sendable public func branch<Scope>(
 		_ scope: Scope.Type,
-		context: Scope.Context
+		context: Scope.Context,
+		file: StaticString = #fileID,
+		line: UInt = #line
 	) throws -> Features
 	where Scope: FeaturesScope {
-		#if DEBUG
-			guard !self.testingScope else {
-				var contexts: Dictionary<AnyHashable, Any> = self.scopeContext as! Dictionary<AnyHashable, Any>
-				contexts[ObjectIdentifier(Scope.self)] = context
-				self.scopeContext = contexts
-				return self
-			}
-		#endif
-
-		guard let scopeRegistry: FeaturesRegistry = self.scopesRegistries[scope.identifier]
+		guard let container: FeaturesContainer = self.container
 		else {
 			throw
-				FeaturesScopeUndefined
+				FeaturesContainerUnavailable
 				.error(
-					message: "Please define all required scopes on root features registry.",
-					scope: scope
+					file: file,
+					line: line
 				)
-				.asRuntimeWarning()
 		}
 
-		return .init(
-			lock: self.lock,
-			scope: scope.identifier,
-			scopeContext: context,
-			parent: self,
-			registry: scopeRegistry,
-			scopesRegistries: self.scopesRegistries,
-			staticFeatures: self.staticFeatures
-		)
+		return
+			try container
+			.branch(
+				scope,
+				context: context,
+				file: file,
+				line: line
+			)
+			.features
 	}
 
 	/// Access a context value associated with scope.
@@ -212,41 +167,31 @@ extension Features {
 	///   - line: Line in given source code file used to track potential error.
 	///   Filled automatically based on compile time constants.
 	/// - Returns: Context value for requested scope if any.
+	/// - Throws: When context for the scope was not defined
+	/// (scope was not used) throws ``FeaturesScopeContextUnavailable`` error.
 	@Sendable public func context<Scope>(
-		for scopeType: Scope.Type,
+		for scope: Scope.Type,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) throws -> Scope.Context
 	where Scope: FeaturesScope {
-		#if DEBUG
-			guard !self.testingScope else {
-				let contexts: Dictionary<AnyHashable, Any> = self.scopeContext as! Dictionary<AnyHashable, Any>
-				if let context: Scope.Context = contexts[ObjectIdentifier(Scope.self)] as? Scope.Context {
-					return context
-				}
-				else {
-					throw
-						FeaturesScopeContextUnavailable
-						.error(
-							scope: Scope.self,
-							file: file,
-							line: line
-						)
-				}
-			}
-		#endif
-		if let context: Scope.Context = self.scopeContext as? Scope.Context {
-			return context
-		}
-		else if let parent: Features = self.parent {
-			return try parent.context(for: Scope.self)
-		}
+		guard let container: FeaturesContainer = self.container
 		else {
 			throw
-				FeaturesScopeContextUnavailable
-				.error(scope: Scope.self)
-				.asRuntimeWarning()
+				FeaturesContainerUnavailable
+				.error(
+					file: file,
+					line: line
+				)
 		}
+
+		return
+			try container
+			.context(
+				for: scope,
+				file: file,
+				line: line
+			)
 	}
 }
 
@@ -275,57 +220,35 @@ extension Features {
 		line: UInt = #line
 	) -> Feature
 	where Feature: StaticFeature {
-		if let instance: StaticFeatureInstance = self.staticFeatures[Feature.identifier] {
-			if let instance: Feature = instance.instance as? Feature {
-				return instance
-			}
-			else {
-				InternalInconsistency
-					.error(
-						message: "Feature is not matching expected type, please report a bug."
-					)
-					.appending(
-						.message(
-							"Feature instance is invalid",
-							file: file,
-							line: line
-						)
-					)
-					.asFatalError()
-			}
-		}
+		guard let container: FeaturesContainer = self.container
 		else {
-			#if DEBUG
-				let instance: Feature
-				if self.testingScope {
-					instance = .placeholder
-					self.staticFeatures[Feature.identifier] = .init(
-						instance: instance,
-						implementation: "placeholder",
-						file: file,
-						line: line
-					)
-				}
-				else {
-					instance = .defaultImplementation(
-						file: file,
-						line: line
-					)
-					self.staticFeatures[Feature.identifier] = .init(
-						instance: instance,
-						implementation: "defaultImplementation",
-						file: file,
-						line: line
-					)
-				}
-				return instance
-			#else
-				return .defaultImplementation(
+			//
+			FeaturesContainerUnavailable
+				.error(
 					file: file,
 					line: line
 				)
-			#endif
+				.asFatalError()
 		}
+
+		#if DEBUG
+			return self.treeLock.withLock { () -> Feature in
+				container
+					.instance(
+						of: featureType,
+						file: file,
+						line: line
+					)
+			}
+		#else
+			return
+				container
+				.instance(
+					of: featureType,
+					file: file,
+					line: line
+				)
+		#endif
 	}
 }
 
@@ -366,95 +289,24 @@ extension Features {
 		line: UInt = #line
 	) throws -> Feature
 	where Feature: DynamicFeature {
-		try self.lock.withLock { () throws -> Feature in
-			if let cachedFeature: Feature = try self.cache.get(featureType, context: context) {
-				return cachedFeature
-			}
-			else {
-				do {
-					let feature: Feature =
-						try self
-						.factory
-						.load(
-							featureType,
-							context: context,
-							within: self,
-							cache: { (entry: FeaturesCache.Entry) in
-								#if DEBUG
-									var entry: FeaturesCache.Entry = entry
-									entry
-										.debugContext
-										.set(context, for: "context")
-									entry
-										.debugContext
-										.set(self.branchDescription, for: "branch")
-								#endif
-								self.cache.set(
-									entry: entry,
-									for: .key(
-										for: featureType,
-										context: context
-									)
-								)
-							},
-							file: file,
-							line: line
-						)
-					return feature
-				}
-				catch let error as FeatureLoadingFailed
-				where error.cause is FeatureUndefined {
-					if let parent: Features = self.parent {
-						do {
-							return
-								try parent
-								.instance(
-									of: featureType,
-									context: context,
-									file: file,
-									line: line
-								)
-						}
-						catch {
-							throw
-								error
-								.asTheError()
-								// replace branch description with current
-								.with(self.branchDescription, for: "branch")
-								.asRuntimeWarning()
-						}
-					}
-					else {
-						#if DEBUG
-							if self.testingScope {
-								let placeholder: Feature = .placeholder
-								self.cache.set(
-									entry: .init(
-										feature: placeholder,
-										debugContext: .context(
-											message: "Placeholder",
-											file: file,
-											line: line
-										)
-										.with(context, for: "context")
-										.with(self.branchDescription, for: "branch"),
-										removal: noop
-									),
-									for: .key(
-										for: featureType,
-										context: context
-									)
-								)
-								return placeholder
-							}  // else continue to an error
-						#endif
-						throw error.asRuntimeWarning()
-					}
-				}
-				catch {
-					throw error
-				}
-			}
+		guard let container: FeaturesContainer = self.container
+		else {
+			throw
+				FeaturesContainerUnavailable
+				.error(
+					file: file,
+					line: line
+				)
+		}
+
+		return try self.treeLock.withLock { () throws -> Feature in
+			try container
+				.instance(
+					of: featureType,
+					context: context,
+					file: file,
+					line: line
+				)
 		}
 	}
 
@@ -496,14 +348,14 @@ extension Features {
 		)
 	}
 
-	/// Get an lazily resolved instance of the requested feature.
+	/// Get an instance of the requested feature with deferred loading.
 	///
 	/// This function allows lazily accessing instances of features.
 	/// It can be used to resolve circular dependencies
 	/// between features.
 	/// Access to the feature is postponed until first call
-	/// for instance from returned ``LazyInstance``.
-	/// ``LazyInstance`` caches result of loading ``Feature``
+	/// for instance from returned ``DeferredInstance``.
+	/// ``DeferredInstance`` caches result of loading ``Feature``
 	/// and does not reach ``Features`` container again after first loading attempt.
 	/// See ``instance(of:context:file:line:)`` for the details about loading features.
 	///
@@ -517,14 +369,14 @@ extension Features {
 	/// - Returns: Lazy wrapper for instance of requested
 	/// feature. Feature instance is not resolved
 	/// immediately and can fail later.
-	@Sendable public func lazyInstance<Feature>(
+	@Sendable public func deferredInstance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		context: Feature.Context,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) -> LazyInstance<Feature>
+	) -> DeferredInstance<Feature>
 	where Feature: DynamicFeature {
-		LazyInstance(
+		DeferredInstance(
 			{ @Sendable () throws -> Feature in
 				try self.instance(
 					of: featureType,
@@ -544,8 +396,8 @@ extension Features {
 	/// It can be used to resolve circular dependencies
 	/// between features.
 	/// Access to the feature is postponed until first call
-	/// for instance from returned ``LazyInstance``.
-	/// ``LazyInstance`` caches result of loading ``Feature``
+	/// for instance from returned ``DeferredInstance``.
+	/// ``DeferredInstance`` caches result of loading ``Feature``
 	/// and does not reach ``Features`` container again after first loading attempt.
 	/// See ``instance(of:context:file:line:)`` for the details about loading features.
 	///
@@ -558,13 +410,13 @@ extension Features {
 	/// - Returns: Lazy wrapper for instance of requested
 	/// feature. Feature instance is not resolved
 	/// immediately and can fail later.
-	@Sendable public func lazyInstance<Feature>(
+	@Sendable public func deferredInstance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) -> LazyInstance<Feature>
+	) -> DeferredInstance<Feature>
 	where Feature: DynamicFeature, Feature.Context == ContextlessFeatureContext {
-		LazyInstance(
+		DeferredInstance(
 			{ @Sendable () throws -> Feature in
 				try self.instance(
 					of: featureType,
@@ -615,29 +467,24 @@ extension Features {
 		line: UInt = #line
 	) throws
 	where Feature: DynamicFeature {
-		do {
-			// TODO: refine preloading features
-			// to avoid loading instances which
-			// are not cached
-			_ = try self.instance(
-				of: featureType,
-				context: context,
-				file: file,
-				line: line
-			)
-		}
-		catch {
+		guard let container: FeaturesContainer = self.container
+		else {
 			throw
-				error
-				.asTheError()
-				.appending(
-					.message(
-						"Preloading feature instance failed at loading completion",
-						file: file,
-						line: line
-					)
+				FeaturesContainerUnavailable
+				.error(
+					file: file,
+					line: line
 				)
-				.asRuntimeWarning()
+		}
+
+		return try self.treeLock.withLock { () throws -> Void in
+			try container
+				.loadIfNeeded(
+					featureType,
+					context: context,
+					file: file,
+					line: line
+				)
 		}
 	}
 
@@ -686,7 +533,7 @@ extension Features {
 extension Features: CustomStringConvertible {
 
 	public var description: String {
-		"Features\(self.scope)"
+		"Features"
 	}
 }
 
@@ -695,7 +542,7 @@ extension Features: CustomDebugStringConvertible {
 
 	public var debugDescription: String {
 		#if DEBUG
-			"Features tree:\n\(self.branchDescription)"
+			"Features tree:\n\(self.container?.branchDescription ?? "N/A")"
 		#else
 			self.description
 		#endif
@@ -708,25 +555,10 @@ extension Features: CustomLeafReflectable {
 	public var customMirror: Mirror {
 		.init(
 			self,
-			children: [
-				"branch": self.branchDescription
-			],
+			children: [],
 			displayStyle: .none,
 			ancestorRepresentation: .suppressed
 		)
-	}
-}
-
-extension Features {
-
-	internal var branchDescription: String {
-		var description: String = ""
-		var current: Features? = self
-		while let features = current {
-			description.append("\nNode: \(features.scope)")
-			current = features.parent
-		}
-		return description
 	}
 }
 
@@ -751,21 +583,14 @@ extension Features {
 		public static func testing<Feature>(
 			_ featureType: Feature.Type = Feature.self,
 			_ loader: FeatureLoader<Feature>
-		) -> Self
+		) -> Features
 		where Feature: DynamicFeature {
-			.init(
-				lock: .nsRecursiveLock(),
-				scope: TestingScope.identifier,
-				scopeContext: Dictionary<AnyHashable, Any>(),
-				parent: .none,
-				registry: .init(dynamicFeaturesLoaders: [loader.asAnyLoader]),
-				scopesRegistries: .init(),
-				staticFeatures: .init()
+			let container: FeaturesContainer = .testing(
+				featureType,
+				loader
 			)
-		}
 
-		private var testingScope: Bool {
-			self.scope == TestingScope.identifier
+			return container.features
 		}
 
 		/// Force given instance in branch cache.
@@ -790,24 +615,13 @@ extension Features {
 			file: StaticString = #fileID,
 			line: UInt = #line
 		) where Feature: DynamicFeature {
-			self.lock.withLock { () -> Void in
-				self.cache
-					.set(
-						entry: .init(
-							feature: instance,
-							debugContext: .context(
-								message: "Forced instance cached",
-								file: file,
-								line: line
-							)
-							.with(context, for: "context")
-							.with(self.branchDescription, for: "branch"),
-							removal: noop
-						),
-						for: .key(
-							for: Feature.self,
-							context: context
-						)
+			self.treeLock.withLock { () -> Void in
+				self.container?
+					.use(
+						instance: instance,
+						context: context,
+						file: file,
+						line: line
 					)
 			}
 		}
@@ -864,74 +678,17 @@ extension Features {
 			file: StaticString = #fileID,
 			line: UInt = #line
 		) where Feature: DynamicFeature {
-			self.lock.withLock { () -> Void in
-				// load if needed ignoring errors
-				do {
-					try self.loadIfNeeded(
+			self.treeLock.withLock { () -> Void in
+				self.container?
+					.patch(
 						Feature.self,
-						context: context
+						context: context,
+						with: { (feature: inout Feature) in
+							feature[keyPath: keyPath] = updated
+						},
+						file: file,
+						line: line
 					)
-				}
-				catch {
-					error
-						.asTheError()
-						.asAssertionFailure()
-				}
-
-				guard
-					var cacheEntry: FeaturesCache.Entry =
-						self
-						.cache
-						.getEntry(
-							for: .key(
-								for: Feature.self,
-								context: context
-							)
-						)
-				else {
-					return runtimeAssertionFailure(
-						message: "Trying to patch not existing feature."
-					)
-				}
-
-				guard var feature: Feature = cacheEntry.feature as? Feature
-				else {
-					InternalInconsistency
-						.error(message: "Feature is not matching expected type, please report a bug.")
-						.with(self.branchDescription, for: "branch")
-						.with(Feature.self, for: "expected")
-						.with(context, for: "context")
-						.with(type(of: cacheEntry.feature), for: "received")
-						.appending(
-							.message(
-								"FeatureLoader is invalid",
-								file: file,
-								line: line
-							)
-						)
-						.asFatalError()
-				}
-
-				feature[keyPath: keyPath] = updated
-				cacheEntry.feature = feature
-				cacheEntry
-					.debugContext
-					.append(
-						.message(
-							"Patched",
-							file: file,
-							line: line
-						)
-						.with(context, for: "context")
-						.with(self.branchDescription, for: "branch")
-					)
-				self.cache.set(
-					entry: cacheEntry,
-					for: .key(
-						for: Feature.self,
-						context: context
-					)
-				)
 			}
 		}
 
@@ -988,74 +745,15 @@ extension Features {
 			file: StaticString = #fileID,
 			line: UInt = #line
 		) where Feature: DynamicFeature {
-			self.lock.withLock { () -> Void in
-				// load if needed ignoring errors
-				do {
-					try self.loadIfNeeded(
+			self.treeLock.withLock { () -> Void in
+				self.container?
+					.patch(
 						Feature.self,
-						context: context
+						context: context,
+						with: patching,
+						file: file,
+						line: line
 					)
-				}
-				catch {
-					error
-						.asTheError()
-						.asAssertionFailure()
-				}
-
-				guard
-					var cacheEntry: FeaturesCache.Entry =
-						self
-						.cache
-						.getEntry(
-							for: .key(
-								for: featureType,
-								context: context
-							)
-						)
-				else {
-					return runtimeAssertionFailure(
-						message: "Trying to patch not existing feature."
-					)
-				}
-
-				guard var feature: Feature = cacheEntry.feature as? Feature
-				else {
-					InternalInconsistency
-						.error(message: "Feature is not matching expected type, please report a bug.")
-						.with(self.branchDescription, for: "branch")
-						.with(Feature.self, for: "expected")
-						.with(context, for: "context")
-						.with(type(of: cacheEntry.feature), for: "received")
-						.appending(
-							.message(
-								"FeatureLoader is invalid",
-								file: file,
-								line: line
-							)
-						)
-						.asFatalError()
-				}
-
-				patching(&feature)
-				cacheEntry.feature = feature
-				cacheEntry
-					.debugContext
-					.append(
-						.message(
-							"Patched",
-							file: file,
-							line: line
-						)
-						.with(context, for: "context")
-						.with(self.branchDescription, for: "branch")
-					)
-				self.cache.set(
-					entry: cacheEntry,
-					for: .key(
-						for: featureType,
-						context: context
-					)
-				)
 			}
 		}
 
@@ -1110,39 +808,21 @@ extension Features {
 			line: UInt = #line
 		) -> SourceCodeContext
 		where Feature: DynamicFeature {
-			self.lock.withLock { () -> SourceCodeContext in
-				self
-					.cache
-					.getDebugContext(
-						for: .key(
-							for: featureType,
-							context: context
-						)
-					)
-					?? self
-					.factory
-					.loaderDebugContext(
-						for: featureType,
-						context: context
-					)
-					?? self
-					.parent?
+			self.treeLock.withLock { () -> SourceCodeContext in
+				self.container?
 					.debugContext(
 						for: featureType,
 						context: context,
 						file: file,
 						line: line
 					)
-					?? FeatureUndefined
+					?? FeaturesContainerUnavailable
 					.error(
-						message: "FeatureLoader.undefined",
-						feature: featureType,
 						file: file,
 						line: line
 					)
-					.with(self.branchDescription, for: "branch")
 					.with(Feature.self, for: "feature")
-					.with("Undefined", for: "implementation")
+					.with("Unavailable", for: "implementation")
 					.context
 			}
 		}
@@ -1194,20 +874,14 @@ extension Features {
 			file: StaticString = #fileID,
 			line: UInt = #line
 		) where Scope: FeaturesScope {
-			if self.testingScope {
-				var contexts: Dictionary<AnyHashable, Any> = self.scopeContext as! Dictionary<AnyHashable, Any>
-				contexts[ObjectIdentifier(Scope.self)] = context
-				return self.scopeContext = contexts
-			}
-			else {
-				FeaturesScopeContextUnavailable
-					.error(
-						message: "Context patching is available only to test containers.",
-						scope: Scope.self,
+			self.treeLock.withLock { () -> Void in
+				self.container?
+					.setContext(
+						context,
+						for: scopeType,
 						file: file,
 						line: line
 					)
-					.asRuntimeWarning()
 			}
 		}
 
@@ -1217,18 +891,9 @@ extension Features {
 		/// It is not available in release builds.
 		/// Exact result of this function call is undefined.
 		@Sendable public func clearCache() {
-			self.lock.withLock { () -> Void in
-				self.cache.clear()
+			self.treeLock.withLock { () -> Void in
+				self.container?.clearCache()
 			}
 		}
 	}
-#endif
-
-#if DEBUG
-
-	private enum TestingScope: FeaturesScope {
-
-		typealias Context = Never
-	}
-
 #endif

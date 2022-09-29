@@ -5,12 +5,12 @@ internal struct DynamicFeatureLoader {
 	internal typealias Identifier = DynamicFeatureLoaderIdentifier
 	internal typealias Load = @Sendable (
 		_ context: Any,
-		_ container: Features
+		_ container: FeaturesContainer
 	) throws -> AnyFeature
 	internal typealias LoadingCompletion = @Sendable (
 		_ instance: AnyFeature,
 		_ context: Any,
-		_ container: Features
+		_ container: FeaturesContainer
 	) -> Void
 	internal typealias Unload = @Sendable (
 		_ instance: AnyFeature

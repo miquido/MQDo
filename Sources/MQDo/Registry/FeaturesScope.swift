@@ -25,7 +25,7 @@ extension FeaturesScope {
 
 	internal typealias Identifier = FeaturesScopeIdentifier
 
-	internal static var identifier: Identifier {
+	internal nonisolated static var identifier: Identifier {
 		Identifier(scope: Self.self)
 	}
 }

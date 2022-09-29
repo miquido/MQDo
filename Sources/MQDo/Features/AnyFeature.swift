@@ -38,15 +38,15 @@ extension AnyFeature {
 	// Internal identifier for feature types.
 	internal typealias TypeIdentifier = ObjectIdentifier
 
-	internal static var typeIdentifier: TypeIdentifier {
+	internal nonisolated static var typeIdentifier: TypeIdentifier {
 		ObjectIdentifier(Self.self)
 	}
 
-	internal static var typeDescription: String {
+	internal nonisolated static var typeDescription: String {
 		"\(Self.self)"
 	}
 
-	internal var typeDescription: String {
+	internal nonisolated var typeDescription: String {
 		Self.typeDescription
 	}
 }

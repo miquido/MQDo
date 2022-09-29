@@ -15,14 +15,15 @@ where Scope: FeaturesScope {
 	/// instances of ``ScopedFeaturesRegistry``.
 	public typealias SetupFunction = (inout ScopedFeaturesRegistry<Scope>) -> Void
 
-	internal private(set) var registry: FeaturesRegistry
+	internal private(set) var registry: DynamicFeaturesRegistry
 	// to be used only by RootRegistry
-	internal private(set) var staticFeatures: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance> = .init()
-	private var scopesFeatures: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry> = .init()
+	private var staticFeatureInstances: Dictionary<StaticFeatureIdentifier, StaticFeatureInstance> = .init()
+	// to be used only by RootRegistry
+	private var scopesFeatures: Dictionary<FeaturesScopeIdentifier, DynamicFeaturesRegistry> = .init()
 
 	internal init(
 		scope: Scope.Type = Scope.self,
-		registry: FeaturesRegistry
+		registry: DynamicFeaturesRegistry
 	) {
 		self.registry = registry
 	}
@@ -45,8 +46,8 @@ extension ScopedFeaturesRegistry {
 	/// If there was already defined implementation for the same
 	/// feature it will be replaced with the new one.
 	///
-	/// - Parameters
-	/// - featureType: Type of registered feature.
+	/// - Parameters:
+	///  - featureType: Type of registered feature.
 	///  - loader: Loader aka implementation of a feature that will
 	///   be used in this registry
 	public mutating func use<Feature>(
@@ -54,30 +55,6 @@ extension ScopedFeaturesRegistry {
 		_ loader: FeatureLoader<Feature>
 	) where Feature: DynamicFeature {
 		self.registry.use(loader: loader.asAnyLoader)
-	}
-
-	/// Remove implementation of a feature.
-	///
-	/// Remove given feature from the registry if able.
-	/// This function has no effect if the feature was not
-	/// registered before.
-	///
-	/// - Parameters
-	///   - featureType: Type of feature which implementation
-	///   will be removed.
-	///   - contextSpecifier: Optional context specification, allows to select context
-	///   specified implementation based on context value if any specified loader was defined.
-	///   If set to none it will refer to general, default loader. Default is none.
-	public mutating func remove<Feature>(
-		_ featureType: Feature.Type,
-		contextSpecifier: Feature.Context? = .none
-	) where Feature: DynamicFeature {
-		self.registry.removeLoader(
-			for: .loaderIdentifier(
-				featureType: featureType,
-				contextSpecifier: contextSpecifier
-			)
-		)
 	}
 }
 
@@ -108,21 +85,39 @@ where Scope == RootFeaturesScope {
 		self.scopesFeatures[DefinedScope.identifier] = scopeRegistry.registry
 	}
 
+	/// Set implementation for a static feature.
+	///
+	/// Associate provided instance with given static feature interface.
+	/// If there was already defined implementation for the same
+	/// feature it will be replaced with the new one.
+	///
+	/// - Parameters:
+	///  - instance: Instance of registered feature.
+	///  - implementation: Name of the implementation.
+	///  Default value is the name of enclosing function.
 	public mutating func use<Feature>(
-		_ implementation: StaticString = #function,
 		static instance: Feature,
+		implementation: StaticString = #function,
 		file: StaticString = #file,
 		line: UInt = #line
 	) where Feature: StaticFeature {
-		self.staticFeatures[instance.identifier] = .init(
-			instance: instance,
+		self.staticFeatureInstances[instance.identifier] = .init(
+			instance,
 			implementation: implementation,
 			file: file,
 			line: line
 		)
 	}
+}
 
-	internal var scopesRegistries: Dictionary<FeaturesScopeIdentifier, FeaturesRegistry> {
+extension ScopedFeaturesRegistry
+where Scope == RootFeaturesScope {
+
+	internal var staticFeatures: StaticFeatures {
+		.init(self.staticFeatureInstances)
+	}
+
+	internal var scopesRegistries: Dictionary<FeaturesScopeIdentifier, DynamicFeaturesRegistry> {
 		self.scopesFeatures
 	}
 }

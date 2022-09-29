@@ -55,7 +55,7 @@ public protocol DynamicFeature: AnyFeature {
 		///
 		/// Note: Placeholder implementation should not be
 		/// available in release builds.
-		static var placeholder: Self { get }
+		nonisolated static var placeholder: Self { get }
 	#endif
 }
 
@@ -64,12 +64,9 @@ extension DynamicFeature {
 	// Internal identifier for loadable feature loaders.
 	internal typealias LoaderIdentifier = DynamicFeatureLoaderIdentifier
 
-	@Sendable internal static func loaderIdentifier(
-		contextSpecifier: Context?
-	) -> LoaderIdentifier {
+	@Sendable internal nonisolated static func loaderIdentifier() -> LoaderIdentifier {
 		.loaderIdentifier(
-			featureType: Self.self,
-			contextSpecifier: contextSpecifier
+			featureType: Self.self
 		)
 	}
 }
@@ -79,7 +76,7 @@ extension DynamicFeature {
 	// Internal identifier for loadable features instances.
 	internal typealias InstanceIdentifier = DynamicFeatureInstanceIdentifier
 
-	@Sendable internal static func instanceIdentifier(
+	@Sendable internal nonisolated static func instanceIdentifier(
 		context: Context
 	) -> InstanceIdentifier {
 		.instanceIdentifier(
