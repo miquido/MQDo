@@ -1,21 +1,21 @@
 internal struct StaticFeatureInstance {
 
 	internal let identifier: StaticFeatureIdentifier
-	private let type: StaticFeature.Type
-	internal let instance: StaticFeature
+	internal let type: StaticFeature.Type
+	internal let feature: StaticFeature
 	#if DEBUG
 		internal let debugContext: SourceCodeContext
 	#endif
 
 	internal init<Feature>(
-		instance: Feature,
+		_ feature: Feature,
 		implementation: StaticString,
 		file: StaticString,
 		line: UInt
 	) where Feature: StaticFeature {
 		self.identifier = Feature.identifier
 		self.type = Feature.self
-		self.instance = instance
+		self.feature = feature
 		#if DEBUG
 			self.debugContext = .context(
 				message: "StaticFeature.instance",

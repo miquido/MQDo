@@ -1,16 +1,16 @@
 import MQ
 
-/// Lazily loaded instance of a feature.
+/// Instance of a feature with deferred loading.
 ///
 /// Instance of a feature which is not loaded immediately
-/// but wrapped inside ``LazyInstance`` box and loaded
+/// but wrapped inside ``DeferredInstance`` box and loaded
 /// when first time asked for an actual instance.
-/// When loading feature succeeds ``LazyInstance`` will
+/// When loading feature succeeds ``DeferredInstance`` will
 /// cache loaded instance, this is true for all types of
 /// ``FeatureLoader`` (including disposable). If loading
 /// fails error will be cached and returned instead of
 /// an instance of feature.
-public struct LazyInstance<Feature>
+public struct DeferredInstance<Feature>
 where Feature: AnyFeature {
 
 	private enum State {
@@ -35,7 +35,7 @@ where Feature: AnyFeature {
 		)
 		#if DEBUG
 			self.debugMeta = .message(
-				"LazyInstance",
+				"DeferredInstance",
 				file: file,
 				line: line
 			)
@@ -85,4 +85,4 @@ where Feature: AnyFeature {
 	}
 }
 
-extension LazyInstance: Sendable {}
+extension DeferredInstance: Sendable {}

@@ -9,7 +9,7 @@ internal struct StaticFeatureIdentifier {
 	}
 }
 
-extension StaticFeatureIdentifier: @unchecked Sendable {}
+extension StaticFeatureIdentifier: Sendable {}
 extension StaticFeatureIdentifier: Hashable {}
 
 extension StaticFeatureIdentifier {

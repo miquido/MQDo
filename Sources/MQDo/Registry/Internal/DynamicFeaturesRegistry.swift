@@ -1,6 +1,6 @@
 import MQ
 
-internal struct FeaturesRegistry {
+internal struct DynamicFeaturesRegistry {
 
 	private var dynamicFeaturesLoaders: Dictionary<DynamicFeatureLoaderIdentifier, DynamicFeatureLoader>
 
@@ -21,7 +21,7 @@ internal struct FeaturesRegistry {
 	}
 }
 
-extension FeaturesRegistry {
+extension DynamicFeaturesRegistry {
 
 	@inline(__always)
 	internal func loader<Feature>(
@@ -31,21 +31,11 @@ extension FeaturesRegistry {
 		line: UInt
 	) throws -> FeatureLoader<Feature>
 	where Feature: DynamicFeature {
-		let matchingLoader: DynamicFeatureLoader? =
-			// look for a context specific loader
-			self.dynamicFeaturesLoaders[
-				.loaderIdentifier(
-					featureType: featureType,
-					contextSpecifier: context
-				)
-			]
-			// fallback to general loader if any
-			?? self.dynamicFeaturesLoaders[
-				.loaderIdentifier(
-					featureType: featureType,
-					contextSpecifier: .none
-				)
-			]
+		let matchingLoader: DynamicFeatureLoader? = self.dynamicFeaturesLoaders[
+			.loaderIdentifier(
+				featureType: featureType
+			)
+		]
 
 		guard let loader: DynamicFeatureLoader = matchingLoader
 		else {
@@ -75,13 +65,6 @@ extension FeaturesRegistry {
 		self.dynamicFeaturesLoaders[loader.identifier] = loader
 	}
 
-	@inline(__always)
-	internal mutating func removeLoader(
-		for identifier: DynamicFeatureLoaderIdentifier
-	) {
-		self.dynamicFeaturesLoaders[identifier] = .none
-	}
-
 	#if DEBUG
 		@inline(__always)
 		internal func debugContext<Feature>(
@@ -89,30 +72,8 @@ extension FeaturesRegistry {
 			context: Feature.Context
 		) -> SourceCodeContext?
 		where Feature: DynamicFeature {
-			// look for a context specific loader
-			(self.dynamicFeaturesLoaders[
-				.loaderIdentifier(
-					featureType: featureType,
-					contextSpecifier: context
-				)
-			]
-				// fallback to general loader if any
-				?? self.dynamicFeaturesLoaders[
-					.loaderIdentifier(
-						featureType: featureType,
-						contextSpecifier: .none
-					)
-				])?
-				.debugContext
+			let loaderIdentifier: DynamicFeatureLoaderIdentifier = .loaderIdentifier(featureType: featureType)
+			return self.dynamicFeaturesLoaders[loaderIdentifier]?.debugContext
 		}
 	#endif
-
-	internal mutating func merge(
-		_ other: FeaturesRegistry
-	) {
-		self.dynamicFeaturesLoaders.merge(
-			other.dynamicFeaturesLoaders,
-			uniquingKeysWith: { $1 }  // always use other
-		)
-	}
 }

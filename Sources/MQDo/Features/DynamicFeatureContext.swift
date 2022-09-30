@@ -15,7 +15,7 @@
 /// result in undefined or unexpected behavior. However feature
 /// implementations that do not use cache and create new instances
 /// on demand can use context value to pass some arguments.
-public protocol DynamicFeatureContext: Hashable, Sendable {
+public protocol DynamicFeatureContext: Sendable {
 
 	associatedtype Identifier: Hashable & Sendable
 
@@ -31,33 +31,34 @@ public protocol DynamicFeatureContext: Hashable, Sendable {
 	/// - Warning: Value of ``identifier`` should not change over time.
 	/// Once the context becomes initialized it should be constant for its lifetime.
 	/// Changing it might result in undefined behavior.
-	var identifier: Identifier { get }
+	nonisolated var identifier: Identifier { get }
 }
 
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
-extension DynamicFeatureContext {
+extension DynamicFeatureContext
+where Self: Hashable {
 
 	// default implementation
-	public var identifier: Self {
+	public nonisolated var identifier: Self {
 		self
 	}
 }
 
 extension DynamicFeatureContext {
 
-	internal static var typeDescription: String {
+	internal nonisolated static var typeDescription: String {
 		"\(Self.self)"
 	}
 
-	internal var typeDescription: String {
+	internal nonisolated var typeDescription: String {
 		Self.typeDescription
 	}
 
-	internal var description: String {
+	internal nonisolated var description: String {
 		"\(self)"  // it will use CustomStringConvertible if able
 	}
 
-	internal var erasedIdentifier: AnyDynamicFeatureContextIdentifier {
+	internal nonisolated var erasedIdentifier: AnyDynamicFeatureContextIdentifier {
 		.init(self.identifier)
 	}
 }

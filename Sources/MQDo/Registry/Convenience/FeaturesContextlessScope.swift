@@ -1,7 +1,7 @@
-/// Base interface for scopes which has no context.
+/// Base interface for scopes which have no context.
 ///
 /// ``FeaturesContextlessScope`` is an interface for defining ``FeaturesScope``
-/// types that has no context.
+/// types that have no context.
 public protocol FeaturesContextlessScope: FeaturesScope
 where Context == Void {}
 // warning: FeaturesContextlessScope should not be used internally. It defines different type
