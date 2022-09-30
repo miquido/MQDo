@@ -21,7 +21,7 @@ extension TestDependantFeature: DynamicContextlessFeature {
 extension FeatureLoader where Feature == TestDependantFeature {
 
 	static func lazyLoaded() -> Self {
-		.lazyLoaded(
+		.cacheable(
 			load: { features in
 				let testFeature: TestFeature = try features.instance(
 					context: .init(

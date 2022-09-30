@@ -12,7 +12,7 @@ public struct ContextlessFeatureContext {
 extension ContextlessFeatureContext: Sendable {}
 
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
-extension ContextlessFeatureContext: DynamicFeatureContext {
+extension ContextlessFeatureContext: IdentifiableFeatureContext {
 
 	public var identifier: ObjectIdentifier {
 		ObjectIdentifier(Self.self)

@@ -1,21 +1,15 @@
 /// Feature context allowing to distinguish instances of the same feature type.
 ///
-/// ``DynamicFeatureContext`` is a type used for defining
+/// ``IdentifiableFeatureContext`` is a type used for defining
 /// contexts for features. It allows to distinguish two feature
 /// instances of the exact same type by its context value.
 /// Two features of the same type which has different context identifiers
-/// are treated as separate features similarly to those of different type.
+/// are treated as a separate features similarly to those of different type.
 ///
 /// - Note: Contexts with matching ``identifier`` but different
-/// actual value should be avoided when using cached features or
-/// when using context specific implementations of features.
-/// Cached features use context identifier as a part of its cache key
-/// while ignoring actual context value and value itself is not
-/// passed to an instance when picking it from cache. It might
-/// result in undefined or unexpected behavior. However feature
-/// implementations that do not use cache and create new instances
-/// on demand can use context value to pass some arguments.
-public protocol DynamicFeatureContext: Sendable {
+/// actual value should be avoided. It might
+/// result in undefined or unexpected behavior.
+public protocol IdentifiableFeatureContext: Sendable {
 
 	associatedtype Identifier: Hashable & Sendable
 
@@ -25,7 +19,7 @@ public protocol DynamicFeatureContext: Sendable {
 	/// Its value cannot change over time and should be different for values that are
 	/// expected to distinguish feature instances.
 	///
-	/// Default implementation of this property uses
+	/// ``Hashable`` contexts have a default implementation using
 	/// context itself to provide this value.
 	///
 	/// - Warning: Value of ``identifier`` should not change over time.
@@ -35,7 +29,7 @@ public protocol DynamicFeatureContext: Sendable {
 }
 
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
-extension DynamicFeatureContext
+extension IdentifiableFeatureContext
 where Self: Hashable {
 
 	// default implementation
@@ -44,21 +38,13 @@ where Self: Hashable {
 	}
 }
 
-extension DynamicFeatureContext {
-
-	internal nonisolated static var typeDescription: String {
-		"\(Self.self)"
-	}
-
-	internal nonisolated var typeDescription: String {
-		Self.typeDescription
-	}
+extension IdentifiableFeatureContext {
 
 	internal nonisolated var description: String {
 		"\(self)"  // it will use CustomStringConvertible if able
 	}
 
-	internal nonisolated var erasedIdentifier: AnyDynamicFeatureContextIdentifier {
+	internal nonisolated var erasedIdentifier: AnyIdentifiableFeatureContextIdentifier {
 		.init(self.identifier)
 	}
 }

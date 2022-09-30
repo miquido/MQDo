@@ -237,10 +237,9 @@ extension FeaturesContainer {
 							#endif
 							self.featuresCache.set(
 								entry: entry,
-								for: .key(
-									for: featureType,
-									context: context
-								)
+								for:
+									featureType
+									.instanceIdentifier(context: context)
 							)
 						},
 						file: file,
@@ -286,10 +285,9 @@ extension FeaturesContainer {
 									.with(self.branchDescription, for: "branch"),
 									removal: noop
 								),
-								for: .key(
-									for: featureType,
-									context: context
-								)
+								for:
+									featureType
+									.instanceIdentifier(context: context)
 							)
 							return placeholder
 						}  // else continue to an error
@@ -324,15 +322,6 @@ extension FeaturesContainer {
 		catch {
 			throw
 				error
-				.asTheError()
-				.appending(
-					.message(
-						"Preloading feature instance failed at loading completion",
-						file: file,
-						line: line
-					)
-				)
-				.asRuntimeWarning()
 		}
 	}
 }
@@ -383,10 +372,9 @@ extension FeaturesContainer {
 						.with(self.branchDescription, for: "branch"),
 						removal: noop
 					),
-					for: .key(
-						for: Feature.self,
-						context: context
-					)
+					for:
+						instance
+						.instanceIdentifier(context: context)
 				)
 		}
 
@@ -405,9 +393,13 @@ extension FeaturesContainer {
 				)
 			}
 			catch {
-				error
-					.asTheError()
-					.asAssertionFailure()
+				// ignore errors, use placeholder instead
+				self.use(
+					instance: Feature.placeholder,
+					context: context,
+					file: file,
+					line: line
+				)
 			}
 
 			guard
@@ -415,10 +407,9 @@ extension FeaturesContainer {
 					self
 					.featuresCache
 					.getEntry(
-						for: .key(
-							for: featureType,
-							context: context
-						)
+						for:
+							featureType
+							.instanceIdentifier(context: context)
 					)
 			else {
 				return runtimeAssertionFailure(
@@ -459,10 +450,9 @@ extension FeaturesContainer {
 				)
 			self.featuresCache.set(
 				entry: cacheEntry,
-				for: .key(
-					for: featureType,
-					context: context
-				)
+				for:
+					featureType
+					.instanceIdentifier(context: context)
 			)
 		}
 
@@ -499,10 +489,9 @@ extension FeaturesContainer {
 			self
 				.featuresCache
 				.getDebugContext(
-					for: .key(
-						for: featureType,
-						context: context
-					)
+					for:
+						featureType
+						.instanceIdentifier(context: context)
 				)
 				?? self
 				.featuresFactory
