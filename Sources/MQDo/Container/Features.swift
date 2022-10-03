@@ -269,7 +269,7 @@ extension Features {
 	/// of requested feature but this container has its own definition (even the same one)
 	/// it will create a new, local instance of that feature and provide it through this function.
 	///
-	/// Instances of features which context conform to ``DynamicFeatureContext``
+	/// Instances of features which context conform to ``IdentifiableFeatureContext``
 	/// are additionally distinguished by the value of context. If the feature
 	/// supports caching then multiple instances of it can be cached at once.
 	///
@@ -447,7 +447,7 @@ extension Features {
 	/// of requested feature but this container has its own definition (even the same one)
 	/// it will create a new, local instance of that feature.
 	///
-	/// Instances of features which context conform to ``DynamicFeatureContext``
+	/// Instances of features which context conform to ``IdentifiableFeatureContext``
 	/// are additionally distinguished by the value of context. If the feature
 	/// supports caching then multiple instances of it can be cached at once.
 	///
@@ -466,7 +466,7 @@ extension Features {
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) throws
-	where Feature: DynamicFeature {
+	where Feature: DynamicFeature, Feature.Context: IdentifiableFeatureContext {
 		guard let container: FeaturesContainer = self.container
 		else {
 			throw
@@ -478,13 +478,28 @@ extension Features {
 		}
 
 		return try self.treeLock.withLock { () throws -> Void in
-			try container
-				.loadIfNeeded(
-					featureType,
-					context: context,
-					file: file,
-					line: line
-				)
+			do {
+				try container
+					.loadIfNeeded(
+						featureType,
+						context: context,
+						file: file,
+						line: line
+					)
+			}
+			catch {
+				throw
+					error
+					.asTheError()
+					.appending(
+						.message(
+							"Preloading feature instance failed.",
+							file: file,
+							line: line
+						)
+					)
+					.asRuntimeWarning()
+			}
 		}
 	}
 

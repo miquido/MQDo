@@ -24,19 +24,14 @@ public protocol DynamicFeature: AnyFeature {
 	/// types / implementations of the same feature
 	/// based on the ``Context`` type (phantom types).
 	/// It can be also used to distinguish instances of the exact same type
-	/// based on ``DynamicFeatureContext`` protocol implementation.
+	/// when ``Context`` implementation is based on
+	/// ``IdentifiableFeatureContext`` protocol.
 	/// It allows to i.e. cache multiple instances of the same feature based on the value of used context.
-	/// This can be used i.e. to prepare fine granulated access to key/value storage
-	/// by creating individual instances of storage for each used key.
-	///
-	/// Features using ``Context`` only as a phantom type (to tag types) and ignore
-	/// its value (or can't have any value) can use ``TaggedDynamicFeature`` protocol
-	/// as a shortcut for defining it without additional boilerplate code.
 	///
 	/// Features which does not require any context can be implemented by using
 	/// ``DynamicContextlessFeature`` protocol which is a shortcut for implementing
 	/// it without additional boilerplate code.
-	associatedtype Context: DynamicFeatureContext
+	associatedtype Context: Sendable
 
 	#if DEBUG
 		/// Placeholder instance.
@@ -65,9 +60,7 @@ extension DynamicFeature {
 	internal typealias LoaderIdentifier = DynamicFeatureLoaderIdentifier
 
 	@Sendable internal nonisolated static func loaderIdentifier() -> LoaderIdentifier {
-		.loaderIdentifier(
-			featureType: Self.self
-		)
+		.loaderIdentifier(featureType: Self.self)
 	}
 }
 
@@ -79,7 +72,32 @@ extension DynamicFeature {
 	@Sendable internal nonisolated static func instanceIdentifier(
 		context: Context
 	) -> InstanceIdentifier {
-		.instanceIdentifier(
+		.init(featureType: Self.self)
+	}
+
+	@Sendable internal nonisolated func instanceIdentifier(
+		context: Context
+	) -> InstanceIdentifier {
+		.init(featureType: Self.self)
+	}
+}
+
+extension DynamicFeature
+where Context: IdentifiableFeatureContext {
+
+	@Sendable internal nonisolated static func instanceIdentifier(
+		context: Context
+	) -> InstanceIdentifier {
+		.init(
+			featureType: Self.self,
+			context: context
+		)
+	}
+
+	@Sendable internal nonisolated func instanceIdentifier(
+		context: Context
+	) -> InstanceIdentifier {
+		.init(
 			featureType: Self.self,
 			context: context
 		)

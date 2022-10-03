@@ -78,10 +78,9 @@ extension FeaturesCache {
 		context: Feature.Context
 	) throws -> Feature?
 	where Feature: DynamicFeature {
-		let key: Key = .key(
-			for: featureType,
-			context: context
-		)
+		let key: Key =
+			featureType
+			.instanceIdentifier(context: context)
 		guard let cachedFeature: AnyFeature = self.cache[key]?.feature
 		else { return .none }
 
@@ -114,19 +113,5 @@ extension FeaturesCache {
 			entry.removal(entry.feature)
 		}
 		self.cache = .init()
-	}
-}
-
-extension FeaturesCache.Key {
-
-	internal static func key<Feature>(
-		for featureType: Feature.Type,
-		context: Feature.Context
-	) -> Self
-	where Feature: DynamicFeature {
-		.instanceIdentifier(
-			featureType: featureType,
-			context: context
-		)
 	}
 }

@@ -9,7 +9,7 @@ struct TestFeature {
 
 extension TestFeature: DynamicFeature {
 
-	struct Context: DynamicFeatureContext, Hashable {
+	struct Context: IdentifiableFeatureContext, Hashable {
 
 		var intValue: Int
 		var stringValue: String
@@ -27,7 +27,7 @@ extension TestFeature: DynamicFeature {
 extension FeatureLoader where Feature == TestFeature {
 
 	static func lazyLoaded() -> Self {
-		.lazyLoaded(
+		.cacheable(
 			load: { context, _ in
 				Feature(
 					testVoid: noop,

@@ -51,9 +51,9 @@ extension FeatureLoader: CustomDebugStringConvertible {
 
 extension FeatureLoader {
 
-	/// Make instance of loader for lazy loaded feature.
+	/// Make instance of loader for lazy loaded cacheable feature.
 	///
-	/// Lazy loaded feature loader provides implementation of a features which are
+	/// Cacheable feature loader provides implementation of a features which are
 	/// dynamically, lazily loaded and cached. Each time an instance is requested
 	/// the same instance within the same features container will be provided.
 	///
@@ -73,7 +73,7 @@ extension FeatureLoader {
 	///   - line: Line in given source code file used to identify feature implementation.
 	///   Filled automatically based on compile time constants.
 	/// - Returns: Instance of ``FeatureLoader`` providing lazy loaded implementation of given feature.
-	@_disfavoredOverload public static func lazyLoaded(
+	@_disfavoredOverload public static func cacheable(
 		_ featureType: Feature.Type = Feature.self,
 		implementation: StaticString = #function,
 		load: @escaping @Sendable (_ context: Feature.Context, _ container: Features) throws -> Feature,
@@ -84,9 +84,9 @@ extension FeatureLoader {
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
-	where Feature: DynamicFeature {
+	where Feature: DynamicFeature, Feature.Context: IdentifiableFeatureContext {
 		@Sendable func featureLoad(
-			context: Any,  // DynamicFeatureContext
+			context: Any,  // IdentifiableFeatureContext
 			using container: FeaturesContainer
 		) throws -> AnyFeature {
 			guard let context: Feature.Context = context as? Feature.Context
@@ -94,7 +94,7 @@ extension FeatureLoader {
 				throw
 					InternalInconsistency
 					.error(message: "Feature context is not matching expected type, please report a bug.")
-					.with(Feature.Context.typeDescription, for: "expected")
+					.with("\(Feature.Context.self)", for: "expected")
 					.with(type(of: context), for: "received")
 					.appending(
 						.message(
@@ -111,7 +111,7 @@ extension FeatureLoader {
 
 		@Sendable func featureLoadingCompletion(
 			_ feature: AnyFeature,
-			context: Any,  // DynamicFeatureContext
+			context: Any,  // IdentifiableFeatureContext
 			using container: FeaturesContainer
 		) {
 			guard let feature: Feature = feature as? Feature
@@ -134,7 +134,7 @@ extension FeatureLoader {
 			else {
 				InternalInconsistency
 					.error(message: "Feature context is not matching expected type, please report a bug.")
-					.with(Feature.Context.typeDescription, for: "expected")
+					.with("\(Feature.Context.self)", for: "expected")
 					.with(type(of: context), for: "received")
 					.appending(
 						.message(
@@ -175,7 +175,7 @@ extension FeatureLoader {
 			return Self(
 				from: DynamicFeatureLoader(
 					debugContext: .context(
-						message: "FeatureLoader.lazyLoaded",
+						message: "FeatureLoader.cacheable",
 						file: file,
 						line: line
 					)
@@ -233,7 +233,7 @@ extension FeatureLoader {
 	) -> Self
 	where Feature: DynamicFeature {
 		@Sendable func featureLoad(
-			context: Any,  // DynamicFeatureContext
+			context: Any,  // IdentifiableFeatureContext
 			using container: FeaturesContainer
 		) throws -> AnyFeature {
 			guard let context: Feature.Context = context as? Feature.Context
@@ -241,7 +241,7 @@ extension FeatureLoader {
 				throw
 					InternalInconsistency
 					.error(message: "Feature context is not matching expected type, please report a bug.")
-					.with(Feature.Context.typeDescription, for: "expected")
+					.with("\(Feature.Context.self)", for: "expected")
 					.with(type(of: context), for: "received")
 					.appending(
 						.message(
@@ -258,7 +258,7 @@ extension FeatureLoader {
 
 		@Sendable func featureLoadingCompletion(
 			_ feature: AnyFeature,
-			context: Any,  // DynamicFeatureContext
+			context: Any,  // IdentifiableFeatureContext
 			using container: FeaturesContainer
 		) {
 			guard let feature: Feature = feature as? Feature
@@ -281,7 +281,7 @@ extension FeatureLoader {
 			else {
 				InternalInconsistency
 					.error(message: "Feature context is not matching expected type, please report a bug.")
-					.with(Feature.Context.typeDescription, for: "expected")
+					.with("\(Feature.Context.self)", for: "expected")
 					.with(type(of: context), for: "received")
 					.appending(
 						.message(
@@ -330,9 +330,9 @@ extension FeatureLoader {
 
 extension FeatureLoader {
 
-	/// Make instance of loader for lazy loaded feature.
+	/// Make instance of loader for lazy loaded cacheable feature.
 	///
-	/// Lazy loaded feature loader provides implementation of a features which are
+	/// Cacheable feature loader provides implementation of a features which are
 	/// dynamically, lazily loaded and cached. Each time an instance is requested
 	/// the same instance within the same features container will be provided.
 	///
@@ -352,7 +352,7 @@ extension FeatureLoader {
 	///   - line: Line in given source code file used to identify feature implementation.
 	///   Filled automatically based on compile time constants.
 	/// - Returns: Instance of ``FeatureLoader`` providing lazy loaded implementation of given feature.
-	public static func lazyLoaded(
+	public static func cacheable(
 		_ featureType: Feature.Type = Feature.self,
 		implementation: StaticString = #function,
 		load: @escaping @Sendable (_ container: Features) throws -> Feature,
