@@ -5,7 +5,6 @@ import MQ
 /// ``DisposableFeature`` TODO: to complete...
 public protocol DisposableFeature: Sendable {
 
-	/// TODO: to complete...
 	associatedtype Context: Sendable = Void
 
 	#if DEBUG
