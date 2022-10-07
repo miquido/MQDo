@@ -19,7 +19,7 @@ public struct FeatureUnimplemented: TheError {
 	/// - Returns: New instance of ``FeatureUnimplemented`` error with given context.
 	public static func error(
 		message: StaticString = "FeatureUnimplemented",
-		feature: AnyFeature.Type,
+		feature: Any.Type,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self {

@@ -18,14 +18,17 @@ public protocol FeaturesScope {
 	/// features container using that scope.
 	/// It can be accessed by features loading
 	/// within that container.
-	associatedtype Context
+	///
+	/// Default context type is Void which
+	/// is equivalent of contextless.
+	associatedtype Context = Void
 }
+
+internal typealias FeaturesScopeIdentifier = ObjectIdentifier
 
 extension FeaturesScope {
 
-	internal typealias Identifier = FeaturesScopeIdentifier
-
-	internal nonisolated static var identifier: Identifier {
-		Identifier(scope: Self.self)
+	internal nonisolated static var identifier: FeaturesScopeIdentifier {
+		ObjectIdentifier(Self.self)
 	}
 }

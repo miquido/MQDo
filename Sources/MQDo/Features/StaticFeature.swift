@@ -8,7 +8,7 @@ import MQ
 /// relay on other features and have to be be defined when
 /// preparing root of the ``Features`` container. All static
 /// features have to be defined on the ``RootScope``.
-public protocol StaticFeature: AnyFeature {
+public protocol StaticFeature: Sendable {
 
 	#if DEBUG
 		/// Placeholder instance.
@@ -31,13 +31,15 @@ public protocol StaticFeature: AnyFeature {
 	#endif
 }
 
+internal typealias StaticFeatureIdentifier = ObjectIdentifier
+
 extension StaticFeature {
 
 	internal nonisolated static var identifier: StaticFeatureIdentifier {
-		.identifier(for: Self.self)
+		ObjectIdentifier(Self.self)
 	}
 
 	internal nonisolated var identifier: StaticFeatureIdentifier {
-		.identifier(for: Self.self)
+		ObjectIdentifier(Self.self)
 	}
 }
