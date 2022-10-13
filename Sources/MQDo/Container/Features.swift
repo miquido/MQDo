@@ -2,7 +2,6 @@ import MQ
 
 /// Container for accessing feature instances.
 ///
-/// TODO: to complete...
 public final class Features {
 
 	#if DEBUG
@@ -91,7 +90,6 @@ extension Features {
 
 	/// Create root container for features.
 	///
-	/// TODO: to complete...
 	public static func root(
 		registrySetup: FeaturesRegistry<RootFeaturesScope>.Setup
 	) -> Features {
@@ -109,7 +107,6 @@ extension Features {
 
 	/// Verify scope of the container.
 	///
-	/// TODO: to complete...
 	@Sendable public func containsScope<Scope>(
 		_ scope: Scope.Type
 	) -> Bool where Scope: FeaturesScope {
@@ -125,7 +122,6 @@ extension Features {
 
 	/// Create new container branch with provided scope.
 	///
-	/// TODO: to complete...
 	@_disfavoredOverload @Sendable public func branch<Scope>(
 		_ scope: Scope.Type,
 		file: StaticString = #fileID,
@@ -152,7 +148,6 @@ extension Features {
 
 	/// Create new container branch with provided scope and context.
 	///
-	/// TODO: to complete...
 	@_disfavoredOverload @Sendable public func branch<Scope>(
 		_ scope: Scope.Type,
 		context: Scope.Context,
@@ -180,7 +175,6 @@ extension Features {
 
 	/// Access a context value associated with scope.
 	///
-	/// TODO: to complete...
 	@Sendable public func context<Scope>(
 		for scope: Scope.Type,
 		file: StaticString = #fileID,
@@ -232,7 +226,6 @@ extension Features {
 
 	/// Remove all cached features from container.
 	///
-	/// TODO: to complete...
 	@Sendable public func cleanCache() {
 		self.treeLock.withLock { () -> Void in
 			for cacheEntry in self.featuresCache.values {
@@ -247,7 +240,6 @@ extension Features {
 
 	/// Access an instance of a ``StaticFeature``.
 	///
-	/// TODO: to complete...
 	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		file: StaticString = #fileID,
@@ -273,7 +265,6 @@ extension Features {
 
 	/// Create an instance of a ``DisposableFeature``.
 	///
-	/// TODO: to complete...
 	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		context: Feature.Context,
@@ -315,7 +306,6 @@ extension Features {
 
 	/// Create an instance of a ``DisposableFeature``.
 	///
-	/// TODO: to complete...
 	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		file: StaticString = #fileID,
@@ -356,7 +346,6 @@ extension Features {
 
 	/// Create an instance of a ``CacheableFeature``.
 	///
-	/// TODO: to complete...
 	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		context: Feature.Context,
@@ -412,7 +401,6 @@ extension Features {
 
 	/// Create an instance of a ``CacheableFeature``.
 	///
-	/// TODO: to complete...
 	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		file: StaticString = #fileID,
@@ -471,7 +459,6 @@ extension Features {
 
 	/// Get a lazy instance of a ``DisposableFeature`` without context.
 	///
-	/// TODO: to complete...
 	@Sendable public func deferredInstance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		file: StaticString = #fileID,
@@ -494,7 +481,6 @@ extension Features {
 
 	/// Get a lazy instance of a ``DisposableFeature``.
 	///
-	/// TODO: to complete...
 	@Sendable public func deferredInstance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		context: Feature.Context,
@@ -518,7 +504,6 @@ extension Features {
 
 	/// Get a lazy instance of a ``CacheableFeature`` without context.
 	///
-	/// TODO: to complete...
 	@Sendable public func deferredInstance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		file: StaticString = #fileID,
@@ -540,7 +525,6 @@ extension Features {
 
 	/// Get a lazy instance of a ``CacheableFeature``.
 	///
-	/// TODO: to complete...
 	@Sendable public func deferredInstance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		context: Feature.Context,
@@ -606,7 +590,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Create container for testing.
 		///
-		/// TODO: to complete...
 		public static func testing<Feature>(
 			_ featureType: Feature.Type = Feature.self,
 			_ loader: any DisposableFeatureLoader
@@ -621,7 +604,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Create container for testing.
 		///
-		/// TODO: to complete...
 		public static func testing<Feature>(
 			_ featureType: Feature.Type = Feature.self,
 			_ loader: any CacheableFeatureLoader
@@ -636,7 +618,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Force given feature instance in container.
 		///
-		/// TODO: to complete...
 		@Sendable public func use<Feature>(
 			instance: Feature,
 			file: StaticString = #fileID,
@@ -653,7 +634,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Force given feature instance in container.
 		///
-		/// TODO: to complete...
 		@Sendable public func use<Feature>(
 			instance: Feature,
 			file: StaticString = #fileID,
@@ -670,7 +650,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Force given feature instance in container.
 		///
-		/// TODO: to complete...
 		@Sendable public func use<Feature>(
 			instance: Feature,
 			file: StaticString = #fileID,
@@ -689,7 +668,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Force given feature instance in container.
 		///
-		/// TODO: to complete...
 		@Sendable public func use<Feature>(
 			instance: Feature,
 			context: Feature.Context,
@@ -707,7 +685,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Patch parts of overriden features.
 		///
-		/// TODO: to complete...
 		@_disfavoredOverload @Sendable public func patch<Feature, Property>(
 			_ keyPath: WritableKeyPath<Feature, Property>,
 			with updated: Property,
@@ -727,7 +704,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Patch parts of overriden features.
 		///
-		/// TODO: to complete...
 		@_disfavoredOverload @Sendable public func patch<Feature, Property>(
 			_ keyPath: WritableKeyPath<Feature, Property>,
 			with updated: Property,
@@ -747,7 +723,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Patch parts of overriden features.
 		///
-		/// TODO: to complete...
 		@_disfavoredOverload @Sendable public func patch<Feature, Property>(
 			_ keyPath: WritableKeyPath<Feature, Property>,
 			with updated: Property,
@@ -772,7 +747,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Patch parts of overriden features.
 		///
-		/// TODO: to complete...
 		@_disfavoredOverload @Sendable public func patch<Feature, Property>(
 			_ keyPath: WritableKeyPath<Feature, Property>,
 			context: Feature.Context,
@@ -795,7 +769,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Patch parts of overriden features.
 		///
-		/// TODO: to complete...
 		@_disfavoredOverload @Sendable public func patch<Feature>(
 			_ feature: Feature.Type,
 			with update: (inout Feature) -> Void,
@@ -815,7 +788,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Patch parts of overriden features.
 		///
-		/// TODO: to complete...
 		@_disfavoredOverload @Sendable public func patch<Feature>(
 			_ feature: Feature.Type,
 			with update: (inout Feature) -> Void,
@@ -835,7 +807,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Patch parts of overriden features.
 		///
-		/// TODO: to complete...
 		@_disfavoredOverload @Sendable public func patch<Feature>(
 			_ feature: Feature.Type,
 			with update: (inout Feature) -> Void,
@@ -860,7 +831,6 @@ extension Features: CustomLeafReflectable {
 
 		/// Patch parts of overriden features.
 		///
-		/// TODO: to complete...
 		@_disfavoredOverload @Sendable public func patch<Feature>(
 			_ feature: Feature.Type,
 			context: Feature.Context,

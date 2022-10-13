@@ -16,7 +16,13 @@ let package = Package(
 			targets: [
 				"MQDo"
 			]
-		)
+		),
+		.library(
+			name: "MQDoTest",
+			targets: [
+				"MQDoTest"
+			]
+		),
 	],
 	dependencies: [
 		.package(
@@ -32,12 +38,34 @@ let package = Package(
 					name: "MQ",
 					package: "mq-ios"
 				)
+			],
+			swiftSettings: [
+				.unsafeFlags([
+					"-Xfrontend", "-warn-concurrency",
+					"-Xfrontend", "-enable-actor-data-race-checks",
+				])
 			]
 		),
 		.testTarget(
 			name: "MQDoTests",
 			dependencies: [
 				"MQDo"
+			]
+		),
+		.target(
+			name: "MQDoTest",
+			dependencies: [
+				"MQDo",
+				.product(
+					name: "MQ",
+					package: "mq-ios"
+				),
+			],
+			swiftSettings: [
+				.unsafeFlags([
+					"-Xfrontend", "-warn-concurrency",
+					"-Xfrontend", "-enable-actor-data-race-checks",
+				])
 			]
 		),
 	],

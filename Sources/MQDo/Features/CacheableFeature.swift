@@ -5,7 +5,6 @@ import MQ
 /// ``CacheableFeature`` TODO: to complete...
 public protocol CacheableFeature: Sendable {
 
-	/// TODO: to complete...
 	associatedtype Context: CacheableFeatureContext = ContextlessCacheableFeatureContext
 
 	#if DEBUG
