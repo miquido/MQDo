@@ -18,7 +18,7 @@ public struct FeatureLoadingFailed: TheError {
 	/// - Returns: New instance of ``FeatureLoadingFailed`` error with given context.
 	public static func error(
 		message: StaticString = "FeatureLoadingFailed",
-		feature: AnyFeature.Type,
+		feature: Any.Type,
 		cause: TheError,
 		file: StaticString = #fileID,
 		line: UInt = #line

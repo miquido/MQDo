@@ -18,7 +18,7 @@ public struct FeatureUndefined: TheError {
 	/// - Returns: New instance of ``FeatureUndefined`` error with given context.
 	public static func error(
 		message: StaticString = "FeatureUndefined",
-		feature: AnyFeature.Type,
+		feature: Any.Type,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self {

@@ -10,8 +10,7 @@ import MQ
 /// ``FeatureLoader`` (including disposable). If loading
 /// fails error will be cached and returned instead of
 /// an instance of feature.
-public struct DeferredInstance<Feature>
-where Feature: AnyFeature {
+public struct DeferredInstance<Feature> {
 
 	private enum State {
 
