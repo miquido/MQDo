@@ -38,12 +38,6 @@ let package = Package(
 					name: "MQ",
 					package: "mq-ios"
 				)
-			],
-			swiftSettings: [
-				.unsafeFlags([
-					"-Xfrontend", "-warn-concurrency",
-					"-Xfrontend", "-enable-actor-data-race-checks",
-				])
 			]
 		),
 		.testTarget(
@@ -60,12 +54,6 @@ let package = Package(
 					name: "MQ",
 					package: "mq-ios"
 				),
-			],
-			swiftSettings: [
-				.unsafeFlags([
-					"-Xfrontend", "-warn-concurrency",
-					"-Xfrontend", "-enable-actor-data-race-checks",
-				])
 			]
 		),
 	],
