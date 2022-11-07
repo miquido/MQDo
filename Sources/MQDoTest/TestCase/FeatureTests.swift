@@ -1,5 +1,5 @@
 #if DEBUG
-	import MQDo
+	import MQBase
 	import XCTest
 
 	@MainActor
@@ -49,6 +49,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -351,7 +352,7 @@
 			_ implementation: some DisposableFeatureLoader<Feature>,
 			executedPrepared expectedExecutionCount: UInt,
 			timeout: TimeInterval = 0.5,
-			when preparation: @escaping (FeatureTestPreparation, @Sendable () -> Void) -> Void,
+			when preparation: @escaping (FeatureTestPreparation, @escaping @Sendable () -> Void) -> Void,
 			executing: @escaping (Feature) async throws -> Void,
 			file: StaticString = #file,
 			line: UInt = #line
@@ -412,7 +413,7 @@
 			context: Feature.Context,
 			executedPrepared expectedExecutionCount: UInt,
 			timeout: TimeInterval = 0.5,
-			when preparation: @escaping (FeatureTestPreparation, @Sendable () -> Void) -> Void,
+			when preparation: @escaping (FeatureTestPreparation, @escaping @Sendable () -> Void) -> Void,
 			executing: @escaping (Feature) async throws -> Void,
 			file: StaticString = #file,
 			line: UInt = #line
@@ -473,7 +474,7 @@
 			_ implementation: some DisposableFeatureLoader<Feature>,
 			executedPreparedUsing expectedArgument: Argument,
 			timeout: TimeInterval = 0.5,
-			when preparation: @escaping (FeatureTestPreparation, @Sendable (Argument) -> Void) -> Void,
+			when preparation: @escaping (FeatureTestPreparation, @escaping @Sendable (Argument) -> Void) -> Void,
 			executing: @escaping (Feature) async throws -> Void,
 			file: StaticString = #file,
 			line: UInt = #line
@@ -534,7 +535,7 @@
 			context: Feature.Context,
 			executedPreparedUsing expectedArgument: Argument,
 			timeout: TimeInterval = 0.5,
-			when prepare: @escaping (FeatureTestPreparation, @Sendable (Argument) -> Void) -> Void,
+			when prepare: @escaping (FeatureTestPreparation, @escaping @Sendable (Argument) -> Void) -> Void,
 			executing: @escaping (Feature) async throws -> Void,
 			file: StaticString = #file,
 			line: UInt = #line
@@ -918,7 +919,7 @@
 			_ implementation: some CacheableFeatureLoader<Feature>,
 			executedPrepared expectedExecutionCount: UInt,
 			timeout: TimeInterval = 0.5,
-			when preparation: @escaping (FeatureTestPreparation, @Sendable () -> Void) -> Void,
+			when preparation: @escaping (FeatureTestPreparation, @escaping @Sendable () -> Void) -> Void,
 			executing: @escaping (Feature) async throws -> Void,
 			file: StaticString = #file,
 			line: UInt = #line
@@ -979,7 +980,7 @@
 			context: Feature.Context,
 			executedPrepared expectedExecutionCount: UInt,
 			timeout: TimeInterval = 0.5,
-			when preparation: @escaping (FeatureTestPreparation, @Sendable () -> Void) -> Void,
+			when preparation: @escaping (FeatureTestPreparation, @escaping @Sendable () -> Void) -> Void,
 			executing: @escaping (Feature) async throws -> Void,
 			file: StaticString = #file,
 			line: UInt = #line

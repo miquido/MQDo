@@ -18,6 +18,12 @@ let package = Package(
 			]
 		),
 		.library(
+			name: "MQBase",
+			targets: [
+				"MQBase"
+			]
+		),
+		.library(
 			name: "MQDoTest",
 			targets: [
 				"MQDoTest"
@@ -47,9 +53,16 @@ let package = Package(
 			]
 		),
 		.target(
+			name: "MQBase",
+			dependencies: [
+				"MQDo"
+			]
+		),
+		.target(
 			name: "MQDoTest",
 			dependencies: [
 				"MQDo",
+				"MQBase",
 				.product(
 					name: "MQ",
 					package: "mq-ios"
