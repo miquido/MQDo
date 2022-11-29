@@ -58,6 +58,12 @@ let package = Package(
 				"MQDo"
 			]
 		),
+		.testTarget(
+			name: "MQBaseTests",
+			dependencies: [
+				"MQBase"
+			]
+		),
 		.target(
 			name: "MQDoTest",
 			dependencies: [
