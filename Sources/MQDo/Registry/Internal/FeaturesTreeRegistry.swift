@@ -67,16 +67,15 @@ extension FeaturesTreeRegistry {
 		if let loader: any DisposableFeatureLoader = scopeFeatures.disposable[Feature.identifier] {
 			let instance: Feature =
 				try loader
-				.load(
+				.loadInstance(
 					Feature.self,
 					context: context,
 					features: features
 				)
 			loader
-				.completeLoad(
+				.completeLoading(
 					instance,
-					context: context,
-					features: features
+					context: context
 				)
 			return instance
 		}
@@ -146,20 +145,19 @@ extension FeaturesTreeRegistry {
 		if let loader: any CacheableFeatureLoader = scopeFeatures.cacheable[Feature.identifier] {
 			let instance: Feature =
 				try loader
-				.load(
+				.loadInstance(
 					Feature.self,
 					context: context,
 					features: features
 				)
 			loader
-				.completeLoad(
+				.completeLoading(
 					instance,
-					context: context,
-					features: features
+					context: context
 				)
 			return (
 				instance: instance,
-				unload: { loader.unload(instance, context: context) }
+				unload: { loader.unloadInstance(instance, context: context) }
 			)
 		}
 		else {
