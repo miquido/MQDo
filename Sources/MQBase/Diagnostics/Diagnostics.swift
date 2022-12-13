@@ -145,10 +145,10 @@ extension Diagnostics {
 
 		public static var placeholder: Diagnostics {
 			.init(
-				appInfo: unimplemented(),
-				deviceInfo: unimplemented(),
-				log: unimplemented(),
-				diagnosticsInfo: unimplemented()
+				appInfo: unimplemented0(),
+				deviceInfo: unimplemented0(),
+				log: unimplemented1(),
+				diagnosticsInfo: unimplemented0()
 			)
 		}
 	#endif

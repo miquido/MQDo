@@ -1,5 +1,7 @@
 import MQ
 
+import class Foundation.NSRecursiveLock
+
 /// Container for accessing feature instances.
 ///
 public final class Features {
@@ -9,7 +11,7 @@ public final class Features {
 		private let tested: Any.Type?
 		private var testOverrides: Dictionary<AnyHashable, Any> = .init()
 	#endif
-	private let treeLock: Lock
+	private let treeLock: NSRecursiveLock
 	private let scope: any FeaturesScope.Type
 	private let scopeContext: any Sendable
 	private let featuresRegistry: FeaturesTreeRegistry
@@ -21,7 +23,7 @@ public final class Features {
 		Dictionary<CacheableFeatureInstanceIdentifier, (instance: any CacheableFeature, unload: @Sendable () -> Void)>
 
 	private init(
-		treeLock: Lock,
+		treeLock: NSRecursiveLock,
 		scope: any FeaturesScope.Type,
 		scopeContext: any Sendable,
 		featuresRegistry: FeaturesTreeRegistry,
@@ -47,7 +49,7 @@ public final class Features {
 		) where Feature: DisposableFeature {
 			self.tested = Feature.self
 			self.testOverrides = testOverrides
-			self.treeLock = .nsRecursiveLock()
+			self.treeLock = .init()
 			self.scope = TestFeaturesScope.self
 			self.scopeContext = Dictionary<FeaturesScopeIdentifier, Any>()
 			var featuresRegistry: FeaturesTreeRegistry = .init()
@@ -65,7 +67,7 @@ public final class Features {
 		) where Feature: CacheableFeature {
 			self.tested = Feature.self
 			self.testOverrides = testOverrides
-			self.treeLock = .nsRecursiveLock()
+			self.treeLock = .init()
 			self.scope = TestFeaturesScope.self
 			self.scopeContext = Dictionary<AnyHashable, Any>()
 			var featuresRegistry: FeaturesTreeRegistry = .init()
@@ -97,7 +99,7 @@ extension Features {
 		registrySetup(&rootRegistry)
 
 		return .init(
-			treeLock: .nsRecursiveLock(),
+			treeLock: .init(),
 			scope: RootFeaturesScope.self,
 			scopeContext: Void(),
 			featuresRegistry: rootRegistry.treeRegistry,
@@ -881,3 +883,14 @@ extension Features: CustomLeafReflectable {
 		}
 	}
 #endif
+
+extension NSRecursiveLock {
+
+	fileprivate func withLock<Returned>(
+		_ execute: () throws -> Returned
+	) rethrows -> Returned {
+		self.lock()
+		defer { self.unlock() }
+		return try execute()
+	}
+}
