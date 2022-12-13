@@ -57,9 +57,9 @@ extension AsyncExecutor: DisposableFeature {
 	#if DEBUG
 		public nonisolated static var placeholder: Self {
 			.init(
-				schedule: unimplemented(),
-				scheduleReplacing: unimplemented(),
-				scheduleReusing: unimplemented()
+				schedule: unimplemented1(),
+				scheduleReplacing: unimplemented2(),
+				scheduleReusing: unimplemented2()
 			)
 		}
 	#endif
