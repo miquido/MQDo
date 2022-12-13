@@ -8,6 +8,11 @@
 		open var commonPreparation: (FeatureTestPreparation) -> Void = { (_: FeatureTestPreparation) -> Void in /* noop */
 		}
 
+		public final override class func setUp() {
+			super.setUp()
+			runtimeAssertionMethod = { _, _, _, _ in }
+		}
+
 		public final override func setUp() {
 			super.setUp()
 		}
@@ -99,6 +104,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -149,6 +155,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -206,6 +213,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -266,6 +274,7 @@
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					self.commonPreparation(testPreparation)
 					preparation(testPreparation)
 					let _: Returned = try await executing(
@@ -275,6 +284,12 @@
 								file: file,
 								line: line
 							)
+					)
+
+					XCTFail(
+						"No error thrown",
+						file: file,
+						line: line
 					)
 				}
 				catch is ExpectedError {
@@ -316,6 +331,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -329,6 +345,11 @@
 								file: file,
 								line: line
 							)
+					)
+					XCTFail(
+						"No error thrown",
+						file: file,
+						line: line
 					)
 				}
 				catch is ExpectedError {
@@ -367,6 +388,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -428,6 +450,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -489,6 +512,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -550,6 +574,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -617,6 +642,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -666,6 +692,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -719,6 +746,7 @@
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					self.commonPreparation(testPreparation)
 					preparation(testPreparation)
 					let returned: Returned = try await executing(
@@ -773,6 +801,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -830,6 +859,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -842,6 +872,12 @@
 								file: file,
 								line: line
 							)
+					)
+
+					XCTFail(
+						"No error thrown",
+						file: file,
+						line: line
 					)
 				}
 				catch is ExpectedError {
@@ -883,6 +919,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -896,6 +933,12 @@
 								file: file,
 								line: line
 							)
+					)
+
+					XCTFail(
+						"No error thrown",
+						file: file,
+						line: line
 					)
 				}
 				catch is ExpectedError {
@@ -934,6 +977,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -995,6 +1039,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -1061,6 +1106,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -1122,6 +1168,7 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures.use(instance: Diagnostics.disabled)
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
