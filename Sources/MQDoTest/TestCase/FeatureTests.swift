@@ -5,13 +5,15 @@
 	@MainActor
 	open class FeatureTests: XCTestCase {
 
-		open var commonPreparation: (FeatureTestPreparation) -> Void = { (_: FeatureTestPreparation) -> Void in /* noop */
-		}
-
 		public final override class func setUp() {
 			super.setUp()
 			runtimeAssertionMethod = { _, _, _, _ in }
 		}
+
+		open var commonPreparation: (FeatureTestPreparation) -> Void = { (_: FeatureTestPreparation) -> Void in /* noop */
+		}
+
+		public final let asyncExecutorControl: AsyncExecutorControl = .init()
 
 		public final override func setUp() {
 			super.setUp()
@@ -55,6 +57,9 @@
 						implementation
 					)
 					testFeatures.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures.use(instance: AsyncExecutor.mock(using: self.asyncExecutorControl))
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
