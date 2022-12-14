@@ -56,9 +56,17 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
 					#if DEBUG
-						testFeatures.use(instance: AsyncExecutor.mock(using: self.asyncExecutorControl))
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
 					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
@@ -109,7 +117,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -160,7 +179,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -218,7 +248,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -279,7 +320,18 @@
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					self.commonPreparation(testPreparation)
 					preparation(testPreparation)
 					let _: Returned = try await executing(
@@ -336,7 +388,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -393,7 +456,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -455,7 +529,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -517,7 +602,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -579,7 +675,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -647,7 +754,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -697,7 +815,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -748,10 +877,21 @@
 						Feature.self,
 						implementation
 					)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
 					self.commonPreparation(testPreparation)
 					preparation(testPreparation)
 					let returned: Returned = try await executing(
@@ -806,7 +946,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -864,7 +1015,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -924,7 +1086,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -982,7 +1155,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -1044,7 +1228,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -1091,7 +1286,7 @@
 			_ implementation: some CacheableFeatureLoader<Feature>,
 			executedPreparedUsing expectedArgument: Argument,
 			timeout: TimeInterval = 0.5,
-			when preparation: @escaping (FeatureTestPreparation, @Sendable (Argument) -> Void) -> Void,
+			when preparation: @escaping (FeatureTestPreparation, @escaping @Sendable (Argument) -> Void) -> Void,
 			executing: @escaping (Feature) async throws -> Void,
 			file: StaticString = #file,
 			line: UInt = #line
@@ -1111,7 +1306,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
@@ -1158,7 +1364,7 @@
 			context: Feature.Context,
 			executedPreparedUsing expectedArgument: Argument,
 			timeout: TimeInterval = 0.5,
-			when prepare: @escaping (FeatureTestPreparation, @Sendable (Argument) -> Void) -> Void,
+			when prepare: @escaping (FeatureTestPreparation, @escaping @Sendable (Argument) -> Void) -> Void,
 			executing: @escaping (Feature) async throws -> Void,
 			file: StaticString = #file,
 			line: UInt = #line
@@ -1173,7 +1379,18 @@
 						Feature.self,
 						implementation
 					)
-					testFeatures.use(instance: Diagnostics.disabled)
+					testFeatures
+						.use(instance: Diagnostics.disabled)
+					#if DEBUG
+						testFeatures
+							.use(
+								instance:
+									AsyncExecutor
+									.mock(
+										using: self.asyncExecutorControl
+									)
+							)
+					#endif
 					let testPreparation: FeatureTestPreparation = .init(
 						features: testFeatures
 					)
