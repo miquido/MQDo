@@ -21,7 +21,7 @@ public protocol FeaturesScope {
 	///
 	/// Default context type is Void which
 	/// is equivalent of contextless.
-	associatedtype Context = Void
+	associatedtype Context = Never
 }
 
 internal typealias FeaturesScopeIdentifier = ObjectIdentifier
