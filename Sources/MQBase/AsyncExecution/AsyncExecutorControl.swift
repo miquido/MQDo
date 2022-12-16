@@ -17,6 +17,12 @@
 
 	extension AsyncExecutorControl {
 
+		public var isEmpty: Bool {
+			self.state.access { (state: inout State) -> Bool in
+				state.queue.isEmpty && state.executionAwaiters.isEmpty
+			}
+		}
+
 		@discardableResult public func executeNext() async -> Bool {
 			if let next: ScheduledAsyncExecution = self.pickNextScheduled() {
 				await next.execute()

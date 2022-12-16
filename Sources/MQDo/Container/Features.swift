@@ -60,6 +60,25 @@ public final class Features {
 			self.featuresCache = .init()
 		}
 
+		private init<FeatureImplementation>(
+			testing featureImplementation: FeatureImplementation.Type,
+			testOverrides: Dictionary<AnyHashable, Any>
+		) where FeatureImplementation: DisposableFeatureImplementation {
+			self.tested = FeatureImplementation.Feature.self
+			self.testOverrides = testOverrides
+			self.treeLock = .init()
+			self.scope = TestFeaturesScope.self
+			self.scopeContext = Dictionary<AnyHashable, Any>()
+			var featuresRegistry: FeaturesTreeRegistry = .init()
+			featuresRegistry.scopeFeatureLoaders[TestFeaturesScope.identifier] = .init()
+			featuresRegistry.scopeFeatureLoaders[TestFeaturesScope.identifier]?.disposable[
+				FeatureImplementation.Feature.identifier
+			] = DisposableFeatureImplementationLoader<FeatureImplementation>()
+			self.featuresRegistry = featuresRegistry
+			self.branchFeatures = .init()
+			self.featuresCache = .init()
+		}
+
 		private init<Feature>(
 			testing featureType: Feature.Type = Feature.self,
 			loader: any CacheableFeatureLoader,
@@ -73,6 +92,25 @@ public final class Features {
 			var featuresRegistry: FeaturesTreeRegistry = .init()
 			featuresRegistry.scopeFeatureLoaders[TestFeaturesScope.identifier] = .init()
 			featuresRegistry.scopeFeatureLoaders[TestFeaturesScope.identifier]?.cacheable[Feature.identifier] = loader
+			self.featuresRegistry = featuresRegistry
+			self.branchFeatures = .init()
+			self.featuresCache = .init()
+		}
+
+		private init<FeatureImplementation>(
+			testing featureImplementation: FeatureImplementation.Type,
+			testOverrides: Dictionary<AnyHashable, Any>
+		) where FeatureImplementation: CacheableFeatureImplementation {
+			self.tested = FeatureImplementation.Feature.self
+			self.testOverrides = testOverrides
+			self.treeLock = .init()
+			self.scope = TestFeaturesScope.self
+			self.scopeContext = Dictionary<AnyHashable, Any>()
+			var featuresRegistry: FeaturesTreeRegistry = .init()
+			featuresRegistry.scopeFeatureLoaders[TestFeaturesScope.identifier] = .init()
+			featuresRegistry.scopeFeatureLoaders[TestFeaturesScope.identifier]?.cacheable[
+				FeatureImplementation.Feature.identifier
+			] = CacheableFeatureImplementationLoader<FeatureImplementation>()
 			self.featuresRegistry = featuresRegistry
 			self.branchFeatures = .init()
 			self.featuresCache = .init()
@@ -606,6 +644,18 @@ extension Features: CustomLeafReflectable {
 
 		/// Create container for testing.
 		///
+		public static func testing<FeatureImplementation>(
+			_ featureImplementation: FeatureImplementation.Type
+		) -> Features
+		where FeatureImplementation: DisposableFeatureImplementation {
+			.init(
+				testing: FeatureImplementation.self,
+				testOverrides: .init()
+			)
+		}
+
+		/// Create container for testing.
+		///
 		public static func testing<Feature>(
 			_ featureType: Feature.Type = Feature.self,
 			_ loader: any CacheableFeatureLoader
@@ -614,6 +664,18 @@ extension Features: CustomLeafReflectable {
 			.init(
 				testing: Feature.self,
 				loader: loader,
+				testOverrides: .init()
+			)
+		}
+
+		/// Create container for testing.
+		///
+		public static func testing<FeatureImplementation>(
+			_ featureImplementation: FeatureImplementation.Type
+		) -> Features
+		where FeatureImplementation: CacheableFeatureImplementation {
+			.init(
+				testing: FeatureImplementation.self,
 				testOverrides: .init()
 			)
 		}
