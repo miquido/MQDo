@@ -155,7 +155,7 @@ extension Features {
 		context: Scope.Context,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) throws -> Features
+	) -> Features
 	where Scope: FeaturesScope {
 		#if DEBUG
 			if self.testing {
