@@ -2,7 +2,7 @@ import XCTest
 
 @testable import MQBase
 
-final class AsyncExecutorTests: XCTestCase {
+final class SystemAsyncExecutorTests: XCTestCase {
 
 	let timeout: TimeInterval = 0.3
 	let iterations: UInt = 10
@@ -13,7 +13,7 @@ final class AsyncExecutorTests: XCTestCase {
 	var counter: CriticalSection<UInt>!
 
 	override func setUp() {
-		executor = .system()
+		executor = SystemAsyncExecutor().instance
 		counter = .init(0)
 	}
 

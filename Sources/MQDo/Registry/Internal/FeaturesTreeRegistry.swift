@@ -1,25 +1,29 @@
 internal struct FeaturesTreeRegistry {
 
-	internal var staticFeatures: Dictionary<StaticFeatureIdentifier, any StaticFeature> = .init()
-	internal var scopeFeatureLoaders: Dictionary<FeaturesScopeIdentifier, FeatureLoaders> = [
-		RootFeaturesScope.identifier: .init()
-	]
+	internal typealias DynamicFeatureLoaders = Dictionary<FeatureIdentifier, FeatureLoader>
 
-	internal init() {}
+	internal var staticFeatures: Dictionary<FeatureIdentifier, any StaticFeature> = .init()
+	internal var scopedDynamicFeatureLoaders: Dictionary<FeaturesScopeIdentifier, DynamicFeatureLoaders>
+
+	internal init() {
+		self.staticFeatures = .init()
+		self.scopedDynamicFeatureLoaders = [
+			RootFeaturesScope.identifier(): .init()
+		]
+	}
 }
 
 extension FeaturesTreeRegistry: Sendable {}
 
 extension FeaturesTreeRegistry {
 
-	internal func loader<Feature, Scope>(
-		for _: Feature.Type,
-		in _: Scope.Type,
+	internal func nodeRegistry<Scope>(
+		for scope: Scope.Type,
 		file: StaticString,
 		line: UInt
-	) throws -> any DisposableFeatureLoader
-	where Feature: DisposableFeature, Scope: FeaturesScope {
-		guard let scopeFeatures: FeatureLoaders = self.scopeFeatureLoaders[Scope.identifier]
+	) throws -> FeaturesNodeRegistry<Scope>
+	where Scope: FeaturesScope {
+		guard let scopeDynamicFeatureLoaders: DynamicFeatureLoaders = self.scopedDynamicFeatureLoaders[scope.identifier()]
 		else {
 			throw
 				FeaturesScopeUndefined
@@ -28,156 +32,30 @@ extension FeaturesTreeRegistry {
 					file: file,
 					line: line
 				)
-		}
-
-		if let loader: any DisposableFeatureLoader = scopeFeatures.disposable[Feature.identifier] {
-			return loader
-		}
-		else {
-			throw
-				FeatureUndefined
-				.error(
-					feature: Feature.self,
+				.asRuntimeWarning(
+					message: "Undefined features scope. You have to define all scopes when creating features root.",
 					file: file,
 					line: line
 				)
 		}
+
+		return .init(
+			for: scope,
+			dynamicFeatureLoaders: scopeDynamicFeatureLoaders
+		)
 	}
+}
 
-	internal func loadInstance<Feature, Scope>(
-		of _: Feature.Type,
-		context: Feature.Context,
-		in _: Scope.Type,
-		using features: Features,
-		file: StaticString,
-		line: UInt
-	) throws -> Feature
-	where Feature: DisposableFeature, Scope: FeaturesScope {
-		guard let scopeFeatures: FeatureLoaders = self.scopeFeatureLoaders[Scope.identifier]
-		else {
-			throw
-				FeaturesScopeUndefined
-				.error(
-					scope: Scope.self,
-					file: file,
-					line: line
-				)
-		}
+extension FeaturesTreeRegistry {
 
-		if let loader: any DisposableFeatureLoader = scopeFeatures.disposable[Feature.identifier] {
-			let instance: Feature =
-				try loader
-				.loadInstance(
-					Feature.self,
-					context: context,
-					features: features
-				)
-			loader
-				.completeLoading(
-					instance,
-					context: context
-				)
-			return instance
-		}
-		else {
-			throw
-				FeatureUndefined
-				.error(
-					feature: Feature.self,
-					file: file,
-					line: line
-				)
-		}
-	}
-
-	internal func loader<Feature, Scope>(
-		for _: Feature.Type,
-		in _: Scope.Type,
-		file: StaticString,
-		line: UInt
-	) throws -> any CacheableFeatureLoader
-	where Feature: CacheableFeature, Scope: FeaturesScope {
-		guard let scopeFeatures: FeatureLoaders = self.scopeFeatureLoaders[Scope.identifier]
-		else {
-			throw
-				FeaturesScopeUndefined
-				.error(
-					scope: Scope.self,
-					file: file,
-					line: line
-				)
-		}
-
-		if let loader: any CacheableFeatureLoader = scopeFeatures.cacheable[Feature.identifier] {
-			return loader
-		}
-		else {
-			throw
-				FeatureUndefined
-				.error(
-					feature: Feature.self,
-					file: file,
-					line: line
-				)
-		}
-	}
-
-	internal func loadInstance<Feature, Scope>(
-		of _: Feature.Type,
-		context: Feature.Context,
-		in _: Scope.Type,
-		using features: Features,
-		file: StaticString,
-		line: UInt
-	) throws -> (instance: Feature, unload: @Sendable () -> Void)
-	where Feature: CacheableFeature, Scope: FeaturesScope {
-		guard let scopeFeatures: FeatureLoaders = self.scopeFeatureLoaders[Scope.identifier]
-		else {
-			throw
-				FeaturesScopeUndefined
-				.error(
-					scope: Scope.self,
-					file: file,
-					line: line
-				)
-		}
-
-		if let loader: any CacheableFeatureLoader = scopeFeatures.cacheable[Feature.identifier] {
-			let instance: Feature =
-				try loader
-				.loadInstance(
-					Feature.self,
-					context: context,
-					features: features
-				)
-			loader
-				.completeLoading(
-					instance,
-					context: context
-				)
-			return (
-				instance: instance,
-				unload: { loader.unloadInstance(instance, context: context) }
-			)
-		}
-		else {
-			throw
-				FeatureUndefined
-				.error(
-					feature: Feature.self,
-					file: file,
-					line: line
-				)
-		}
-	}
-
-	internal func instance<Feature>(
+	@inline(__always)
+	@Sendable internal func instance<Feature>(
 		of _: Feature.Type,
 		file: StaticString,
 		line: UInt
 	) -> Feature
 	where Feature: StaticFeature {
-		if let instance: any StaticFeature = self.staticFeatures[Feature.identifier] {
+		if let instance: any StaticFeature = self.staticFeatures[Feature.identifier()] {
 			if let instance: Feature = instance as? Feature {
 				return instance
 			}
@@ -186,7 +64,10 @@ extension FeaturesTreeRegistry {
 					.error(
 						message: "Type mismatch when accessing static feature, please report a bug."
 					)
-					.asFatalError()
+					.asFatalError(
+						file: file,
+						line: line
+					)
 			}
 		}
 		else {
@@ -196,7 +77,11 @@ extension FeaturesTreeRegistry {
 					file: file,
 					line: line
 				)
-				.asFatalError(message: "All static features has to be defined.")
+				.asFatalError(
+					message: "All static features have to be defined.",
+					file: file,
+					line: line
+				)
 		}
 	}
 }

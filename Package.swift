@@ -4,10 +4,10 @@ import PackageDescription
 let package = Package(
 	name: "MQDo",
 	platforms: [
-		.iOS(.v13),
-		.macOS(.v11),
-		.macCatalyst(.v13),
-		.tvOS(.v13),
+		.iOS(.v14),
+		.macOS(.v12),
+		.macCatalyst(.v14),
+		.tvOS(.v14),
 		.watchOS(.v7),
 	],
 	products: [
@@ -33,7 +33,7 @@ let package = Package(
 	dependencies: [
 		.package(
 			url: "https://github.com/miquido/MQ-iOS.git",
-			.upToNextMajor(from: "0.9.0")
+			.upToNextMajor(from: "0.10.0")
 		)
 	],
 	targets: [
@@ -55,7 +55,11 @@ let package = Package(
 		.target(
 			name: "MQBase",
 			dependencies: [
-				"MQDo"
+				"MQDo",
+				.product(
+					name: "MQ",
+					package: "mq-ios"
+				),
 			]
 		),
 		.testTarget(
@@ -68,7 +72,6 @@ let package = Package(
 			name: "MQDoTest",
 			dependencies: [
 				"MQDo",
-				"MQBase",
 				.product(
 					name: "MQ",
 					package: "mq-ios"

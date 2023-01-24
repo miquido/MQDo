@@ -2,7 +2,7 @@
 
 [![Platforms](https://img.shields.io/badge/platform-iOS%20|%20iPadOS%20|%20macOS-gray.svg?style=flat)]()
 [![Swift Package Manager compatible](https://img.shields.io/badge/Swift%20Package%20Manager-compatible-brightgreen.svg)](https://github.com/apple/swift-package-manager)
-[![SwiftVersion](https://img.shields.io/badge/Swift-5.5-brightgreen.svg)]()
+[![SwiftVersion](https://img.shields.io/badge/Swift-5.7-brightgreen.svg)]()
 
 Dependency injection framework for Swift.
 
@@ -24,52 +24,60 @@ MQDo provides numerous functionalities useful for managing dependencies across S
 
 Basic example of a container, feature definition and feature access.
 
-Firstly you have to prepare feature interface. Using structs instead of protocols is required due to swift compiler limitations.
+Firstly you have to prepare feature interface. All interfaces should be defined using structs. 
+It helps in both testing (mocking) and debugging. Using structs instead of protocols is also 
+required due to swift compiler limitations in some cases.
 
 ```swift
 
-// Interface of a feature. Using struct is required, protocol based interfaces are not supported.
-struct Logger {
+// Interface of a feature prepared using a struct.
+struct Printer {
 
   // Method required by the interface
-  var logMessage: (String) -> Void
+  var printMessage: (String) -> Void
 }
 ```
 
 Then define its conformance to a required protocol allowing usage in dependency containers.
+Depending on selected protocol it also defines a lifetime and accessibility of a feature.
+`StaticFeature` is always available and have to be defined. `DisposableFeature` is built
+each time instance is requested returning fresh instance each time. `CacheableFeature` is built
+once for defined scope, cached and reused when able.
 
 ```swift
 
-// DynamicFeature implementation is required. Features can have Context types defined or
-// be contextless as defined here using `DynamicContextlessFeature` protocol.
-extension Logger: DynamicContextlessFeature {
+// Conformance to one of a "Feature" protocols is required. 
+// Dynamic features (Disposable, Cacheable) can have a Context defined or be contextless (which is default).
+// Context is then required to create instances and can be used to pass any additional data and methods inside.
+extension Printer: DisposableFeature {
 
-  // For debug builds it is required to provide placeholder implementation.
-  #if DEBUG
+  // It is required to provide placeholder implementation.
+  // Placeholders are then used as a base for mocking.
   static var placeholder: Self {
     .init(
-      logMessage: unimplemented()
+      printMessage: unimplemented1()
     )
   }
-  #endif
 }
 ```
 
-Next you can provide any number of implementations. You can do it ad-hoc (as in example below) or by using only concrete type which will be used to fulfill interface requirements.
+Next you can provide any number of implementations. You can do it ad-hoc (as in example below) or by using 
+only a concrete type which will be used to fulfill interface requirements.
 
 ```swift
 
-// Implementation of a feature is provided by defining
-// FeatureLoader creating concrete instance based on required interface.
-extension FeatureLoader where Feature == Logger {
+// Implementation of a feature can be provided by defining
+// FeatureLoader loading instances of given feature.
+extension Printer  {
 
-  static func console() -> Self {
+  static func consolePrinter() -> FeatureLoader {
     // There are multiple available implementations of the FeatureLoader
-    // which define lifetime and loading behavior for implemented feature.
-    .lazyLoaded { (features: Features) in
+    // which correspond to a lifetime and loading behavior of implemented feature
+    // based on its type.
+    .disposable { (features: Features) -> Printer in
       // `features` is a container context which can be used
-      // to retrieve any other features
-      Feature(
+      // to retrieve any other features if needed.
+      Printer(
         logMessage: { (message: String) in
           print(message)
         }
@@ -82,8 +90,8 @@ extension FeatureLoader where Feature == Logger {
 If you have defined your feature interface and some implementation you can then register it within a scope inside a container to be available. All feature implementations should be defined when creating container tree root.
 
 ```swift
-let features: Features = .root { (registry: inout ScopedFeaturesRegistry<RootFeaturesScope>) in
-  registry.use(Logger.self, .console())
+let features: Features = FeaturesRoot { (registry: inout FeaturesRegistry<RootFeaturesScope>) in
+  registry.use(.consolePrinter())
   // you can also define other scopes and its features in this context
 }
 ```
@@ -91,33 +99,24 @@ let features: Features = .root { (registry: inout ScopedFeaturesRegistry<RootFea
 Finally you can access any feature from the container.
 
 ```swift
-let logger: Logger = try features.instance()
+let printer: Printer = try features.instance()
 ```
 
 If requested feature was not defined in available registry or there was any issue with accessing its instance you will get full diagnostics required to track the error.
 
 ```
-FeatureLoadingFailed
-###
----
-MQDo/Example.swift@16:29
- " Requested feature loader is not defined
- - feature: Logger
----
-MQDo/Example.swift@16:29
- " Loading feature instance failed
- - feature: Logger
- - context: Tag<Never>
- - scope: [Scope:MyScope]
- - features: Branch
-   Features[Scope:MyScope]
-   Features[Scope:RootFeaturesScope]
----
+⎡ ⚠️ FeatureUndefined
+⎜ 📺 FeatureUndefined
+⎜ 🧵 Context: 
+⎜ 📍 MQDo/Example.swift:36
+⎜ ✉️ FeatureUndefined 
+⎜ 🧩 feature: Printer
+⎣ ⚠️ FeatureUndefined
 ```
 
 ## License
 
-Copyright 2021 Miquido
+Copyright 2021-2023 Miquido
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 

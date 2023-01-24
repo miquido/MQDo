@@ -4,10 +4,10 @@ import MQDo
 
 public struct AsyncExecutor {
 
-	private let schedule: @Sendable (@escaping @Sendable () async -> Void) -> AsyncExecution
-	private let scheduleReplacing:
+	fileprivate let schedule: @Sendable (@escaping @Sendable () async -> Void) -> AsyncExecution
+	fileprivate let scheduleReplacing:
 		@Sendable (AsyncExecutionIdentifier, @escaping @Sendable () async -> Void) -> AsyncExecution
-	private let scheduleReusing:
+	fileprivate let scheduleReusing:
 		@Sendable (AsyncExecutionIdentifier, @escaping @Sendable () async -> Void) -> AsyncExecution
 }
 
@@ -54,23 +54,30 @@ extension AsyncExecutor {
 
 extension AsyncExecutor: DisposableFeature {
 
-	#if DEBUG
-		public nonisolated static var placeholder: Self {
-			.init(
-				schedule: unimplemented1(),
-				scheduleReplacing: unimplemented2(),
-				scheduleReusing: unimplemented2()
-			)
-		}
-	#endif
+	public nonisolated static var placeholder: Self {
+		.init(
+			schedule: unimplemented1(),
+			scheduleReplacing: unimplemented2(),
+			scheduleReusing: unimplemented2()
+		)
+	}
 }
 
 // MARK: - Implementation
 
 extension AsyncExecutor {
 
-	internal static func system() -> Self {
-		let executionState: CriticalSection<Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>> = .init(
+	internal static func system() -> FeatureLoader {
+		SystemAsyncExecutor.loader()
+	}
+}
+
+public struct SystemAsyncExecutor: ImplementationOfDisposableFeature {
+
+	private let executionState: CriticalSection<Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>>
+
+	public init() {
+		self.executionState = .init(
 			.init(),
 			cleanup: { (executionState: Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) in
 				for scheduledExecution in executionState.values {
@@ -78,52 +85,109 @@ extension AsyncExecutor {
 				}
 			}
 		)
+	}
+	public init(
+		with context: Void,
+		using features: Features
+	) throws {
+		self.init()
+	}
 
-		@Sendable func schedule(
-			_ task: @escaping @Sendable () async -> Void
-		) -> AsyncExecution {
-			let executionIdentifier: AsyncExecutionIdentifier = .empty()
+	public var instance: AsyncExecutor {
+		.init(
+			schedule: self.schedule(_:),
+			scheduleReplacing: self.scheduleReplacing(_:_:),
+			scheduleReusing: self.scheduleReusing(_:_:)
+		)
+	}
+}
+
+extension SystemAsyncExecutor {
+
+	@Sendable public func schedule(
+		_ task: @escaping @Sendable () async -> Void
+	) -> AsyncExecution {
+		let executionIdentifier: AsyncExecutionIdentifier = .empty()
+		let task: @Sendable () async -> Void = {
+			await task()
+			self.executionState.access {
+				(executionState: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) in
+				executionState[executionIdentifier] = .none
+			}
+		}
+
+		return self.executionState.access {
+			(executionState: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) -> AsyncExecution in
+			let runningTask: Task<Void, Never> = .init {
+				await task()
+			}
+			let execution: AsyncExecution = .init(
+				identifier: executionIdentifier,
+				cancellation: { runningTask.cancel() },
+				completion: { await runningTask.value }
+			)
+			executionState[executionIdentifier] = .init(
+				execution: execution,
+				execute: task
+			)
+			return execution
+		}
+	}
+
+	@Sendable public func scheduleReplacing(
+		_ executionIdentifier: AsyncExecutionIdentifier,
+		_ task: @escaping @Sendable () async -> Void
+	) -> AsyncExecution {
+		self.executionState.access {
+			(state: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) -> AsyncExecution in
+			let runningExecutionIdentifiers: Array<AsyncExecutionIdentifier> = state.keys.filter({
+				$0.schedulerIdentifier == executionIdentifier.schedulerIdentifier
+			})
+
+			for identifier in runningExecutionIdentifiers {
+				state[identifier]?.execution.cancel()
+			}
 			let task: @Sendable () async -> Void = {
 				await task()
-				executionState.access { (executionState: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) in
+				self.executionState.access {
+					(executionState: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) in
 					executionState[executionIdentifier] = .none
 				}
 			}
 
-			return executionState.access {
-				(executionState: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) -> AsyncExecution in
-				let runningTask: Task<Void, Never> = .init {
-					await task()
-				}
-				let execution: AsyncExecution = .init(
-					identifier: executionIdentifier,
-					cancellation: { runningTask.cancel() },
-					completion: { await runningTask.value }
-				)
-				executionState[executionIdentifier] = .init(
-					execution: execution,
-					execute: task
-				)
-				return execution
+			let runningTask: Task<Void, Never> = .init {
+				await task()
 			}
+			let execution: AsyncExecution = .init(
+				identifier: executionIdentifier,
+				cancellation: { runningTask.cancel() },
+				completion: { await runningTask.value }
+			)
+			state[executionIdentifier] = .init(
+				execution: execution,
+				execute: task
+			)
+			return execution
 		}
+	}
 
-		@Sendable func scheduleReplacing(
-			_ executionIdentifier: AsyncExecutionIdentifier,
-			_ task: @escaping @Sendable () async -> Void
-		) -> AsyncExecution {
-			executionState.access {
-				(state: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) -> AsyncExecution in
-				let runningExecutionIdentifiers: Array<AsyncExecutionIdentifier> = state.keys.filter({
-					$0.schedulerIdentifier == executionIdentifier.schedulerIdentifier
-				})
-
-				for identifier in runningExecutionIdentifiers {
-					state[identifier]?.execution.cancel()
-				}
+	@Sendable public func scheduleReusing(
+		_ executionIdentifier: AsyncExecutionIdentifier,
+		_ task: @escaping @Sendable () async -> Void
+	) -> AsyncExecution {
+		self.executionState.access {
+			(state: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) -> AsyncExecution in
+			if let runningExecutionIdentifier: AsyncExecutionIdentifier = state.keys.first(where: {
+				$0.schedulerIdentifier == executionIdentifier.schedulerIdentifier
+			}),
+				let runningExecution: AsyncExecution = state[runningExecutionIdentifier]?.execution
+			{
+				return runningExecution
+			}
+			else {
 				let task: @Sendable () async -> Void = {
 					await task()
-					executionState.access {
+					self.executionState.access {
 						(executionState: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) in
 						executionState[executionIdentifier] = .none
 					}
@@ -144,61 +208,6 @@ extension AsyncExecutor {
 				return execution
 			}
 		}
-
-		@Sendable func scheduleReusing(
-			_ executionIdentifier: AsyncExecutionIdentifier,
-			_ task: @escaping @Sendable () async -> Void
-		) -> AsyncExecution {
-			executionState.access {
-				(state: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) -> AsyncExecution in
-				if let runningExecutionIdentifier: AsyncExecutionIdentifier = state.keys.first(where: {
-					$0.schedulerIdentifier == executionIdentifier.schedulerIdentifier
-				}),
-					let runningExecution: AsyncExecution = state[runningExecutionIdentifier]?.execution
-				{
-					return runningExecution
-				}
-				else {
-					let task: @Sendable () async -> Void = {
-						await task()
-						executionState.access {
-							(executionState: inout Dictionary<AsyncExecutionIdentifier, ScheduledAsyncExecution>) in
-							executionState[executionIdentifier] = .none
-						}
-					}
-
-					let runningTask: Task<Void, Never> = .init {
-						await task()
-					}
-					let execution: AsyncExecution = .init(
-						identifier: executionIdentifier,
-						cancellation: { runningTask.cancel() },
-						completion: { await runningTask.value }
-					)
-					state[executionIdentifier] = .init(
-						execution: execution,
-						execute: task
-					)
-					return execution
-				}
-			}
-		}
-
-		return .init(
-			schedule: schedule(_:),
-			scheduleReplacing: scheduleReplacing(_:_:),
-			scheduleReusing: scheduleReusing(_:_:)
-		)
-	}
-
-	internal static func systemExecutor() -> some DisposableFeatureLoader<Self> {
-		FeatureLoader
-			.disposable(
-				Self.self,
-				load: { (_: Features) -> Self in
-					system()
-				}
-			)
 	}
 }
 
