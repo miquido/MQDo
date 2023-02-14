@@ -9,6 +9,7 @@ build:
 	swift build
 
 release_build:
+	swift package reset
 	swift build --configuration release
 	
 test:

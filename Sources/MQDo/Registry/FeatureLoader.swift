@@ -1,72 +1,230 @@
-public enum FeatureLoader {}
+public struct FeatureLoader {
 
-extension FeatureLoader {
+	internal typealias AnyFeature = Any
+	internal typealias AnyFeatureContext = Any
 
-	public static func disposable<Feature>(
-		_: Feature.Type = Feature.self,
-		implementation: StaticString = #function,
-		load: @escaping @Sendable (_ container: Features) throws -> Feature,
-		loadingCompletion: @escaping @Sendable (_ instance: Feature) ->
-			Void = { _ in },
-		file: StaticString = #fileID,
-		line: UInt = #line
-	) -> some DisposableFeatureLoader<Feature>
-	where Feature: DisposableFeature, Feature.Context == Void {
-		#if DEBUG
-			return DynamicDisposableFeatureLoader<Feature>(
-				debugMeta: SourceCodeMeta.message(
-					implementation,
-					file: file,
-					line: line
-				),
-				load: { (_: Feature.Context, container: Features) throws -> Feature in
-					try load(container)
-				},
-				loadingCompletion: { (instance: Feature, _: Feature.Context) in
-					loadingCompletion(instance)
-				}
-			)
-		#else
-			return DynamicDisposableFeatureLoader<Feature>(
-				load: { (_: Feature.Context, container: Features) throws -> Feature in
-					try load(container)
-				},
-				loadingCompletion: { (instance: Feature, _: Feature.Context) in
-					loadingCompletion(instance)
-				}
-			)
-		#endif
+	internal let featureType: Any.Type
+	internal let identifier: FeatureIdentifier
+	fileprivate let loadInstance: @Sendable (AnyFeatureContext, Features) throws -> AnyFeature
+}
+
+extension FeatureLoader: Sendable {}
+
+extension FeatureLoader: CustomStringConvertible {
+
+	public var description: String {
+		"FeatureLoader<\(self.featureType)>"
+	}
+}
+
+extension FeatureLoader: CustomDebugStringConvertible {
+
+	public var debugDescription: String {
+		"FeatureLoader<\(self.featureType)>"
+	}
+}
+
+extension FeatureLoader: CustomReflectable {
+
+	public var customMirror: Mirror {
+		.init(
+			self,
+			children: [
+				"featureType": self.featureType
+			]
+		)
 	}
 }
 
 extension FeatureLoader {
 
-	public static func disposable<Feature>(
-		_: Feature.Type = Feature.self,
-		implementation: StaticString = #function,
-		load: @escaping @Sendable (_ context: Feature.Context, _ container: Features) throws -> Feature,
-		loadingCompletion: @escaping @Sendable (_ instance: Feature, _ context: Feature.Context) ->
-			Void = { _, _ in },
+	public func isLoaderFor<Feature>(
+		_ type: Feature.Type
+	) -> Bool {
+		self.featureType == type
+	}
+}
+
+extension FeatureLoader {
+
+	public func loadInstance<Feature>(
+		of _: Feature.Type,
+		context: Feature.Context,
+		using features: Features,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) -> some DisposableFeatureLoader<Feature>
+	) throws -> Feature
 	where Feature: DisposableFeature {
-		#if DEBUG
-			return DynamicDisposableFeatureLoader<Feature>(
-				debugMeta: SourceCodeMeta.message(
-					implementation,
+		do {
+			if self.isLoaderFor(Feature.self),
+				let instance: Feature = try self.loadInstance(context, features) as? Feature
+			{
+				return instance
+			}
+			else {
+				throw
+					InternalInconsistency
+					.error(
+						message: "Type mismatch in disposable feature load."
+					)
+					.asRuntimeWarning(
+						message: "Asking loader for a wrong type is a bug.",
+						file: file,
+						line: line
+					)
+			}
+		}
+		catch {
+			throw
+				FeatureLoadingFailed
+				.error(
+					feature: Feature.self,
+					cause: error.asTheError(),
 					file: file,
 					line: line
-				),
-				load: load,
-				loadingCompletion: loadingCompletion
-			)
-		#else
-			return DynamicDisposableFeatureLoader<Feature>(
-				load: load,
-				loadingCompletion: loadingCompletion
-			)
-		#endif
+				)
+		}
+	}
+
+	public func loadInstance<Feature>(
+		of _: Feature.Type,
+		context: Feature.Context,
+		using features: Features,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) throws -> Feature
+	where Feature: CacheableFeature {
+		do {
+			if self.isLoaderFor(Feature.self),
+				let instance: Feature = try self.loadInstance(context, features) as? Feature
+			{
+				return instance
+			}
+			else {
+				throw
+					InternalInconsistency
+					.error(
+						message: "Type mismatch in cacheable feature load."
+					)
+					.asRuntimeWarning(
+						message: "Asking loader for a wrong type is a bug.",
+						file: file,
+						line: line
+					)
+			}
+		}
+		catch {
+			throw
+				FeatureLoadingFailed
+				.error(
+					feature: Feature.self,
+					cause: error.asTheError(),
+					file: file,
+					line: line
+				)
+		}
+	}
+}
+
+extension FeatureLoader {
+
+	public static func unavailable<Feature>(
+		_: Feature.Type = Feature.self,
+		message: StaticString = "Feature unavailable",
+		displayableMessage: DisplayableString = TheErrorDisplayableMessages.message(for: FeatureUnavailable.self),
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) -> Self
+	where Feature: DisposableFeature {
+		return Self(
+			featureType: Feature.self,
+			identifier: Feature.identifier(),
+			loadInstance: { (_: AnyFeatureContext, container: Features) throws -> Feature in
+				throw
+					FeatureUnavailable
+					.error(
+						message: message,
+						displayableMessage: displayableMessage,
+						feature: Feature.self,
+						file: file,
+						line: line
+					)
+			}
+		)
+	}
+
+	public static func unavailable<Feature>(
+		_: Feature.Type = Feature.self,
+		message: StaticString = "Feature unavailable",
+		displayableMessage: DisplayableString = TheErrorDisplayableMessages.message(for: FeatureUnavailable.self),
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) -> Self
+	where Feature: CacheableFeature {
+		return Self(
+			featureType: Feature.self,
+			identifier: Feature.identifier(),
+			loadInstance: { (_: AnyFeatureContext, container: Features) throws -> Feature in
+				throw
+					FeatureUnavailable
+					.error(
+						message: message,
+						displayableMessage: displayableMessage,
+						feature: Feature.self,
+						file: file,
+						line: line
+					)
+			}
+		)
+	}
+}
+
+extension FeatureLoader {
+
+	public static func disposable<Feature>(
+		_: Feature.Type = Feature.self,
+		implementation: StaticString = #function,
+		load: @escaping @Sendable (_ container: Features) throws -> Feature,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) -> Self
+	where Feature: DisposableFeature, Feature.Context == Void {
+		return Self(
+			featureType: Feature.self,
+			identifier: Feature.identifier(),
+			loadInstance: { (_: AnyFeatureContext, container: Features) throws -> Feature in
+				try load(container)
+			}
+		)
+	}
+
+	public static func disposable<Feature>(
+		_: Feature.Type = Feature.self,
+		implementation: StaticString = #function,
+		load: @escaping @Sendable (_ context: Feature.Context, _ container: Features) throws -> Feature,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) -> Self
+	where Feature: DisposableFeature {
+		return Self(
+			featureType: Feature.self,
+			identifier: Feature.identifier(),
+			loadInstance: { (context: AnyFeatureContext, container: Features) throws -> Feature in
+				if let context: Feature.Context = context as? Feature.Context {
+					return try load(context, container)
+				}
+				else {
+					throw
+						InternalInconsistency
+						.error(
+							message: "Invalid feature loader."
+						)
+						.asAssertionFailure(
+							message: "Type mismatch in features loader. Please report a bug."
+						)
+				}
+			}
+		)
 	}
 }
 
@@ -76,76 +234,45 @@ extension FeatureLoader {
 		_: Feature.Type = Feature.self,
 		implementation: StaticString = #function,
 		load: @escaping @Sendable (_ container: Features) throws -> Feature,
-		loadingCompletion: @escaping @Sendable (_ instance: Feature) ->
-			Void = { _ in },
-		unload: @escaping @Sendable (_ instance: Feature) -> Void = { _ in },
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) -> some CacheableFeatureLoader<Feature>
-	where Feature: CacheableFeature, Feature.Context == ContextlessCacheableFeatureContext {
-		#if DEBUG
-			return DynamicCacheableFeatureLoader<Feature>(
-				debugMeta: SourceCodeMeta.message(
-					implementation,
-					file: file,
-					line: line
-				),
-				load: { (_: Feature.Context, container: Features) throws -> Feature in
-					try load(container)
-				},
-				loadingCompletion: { (instance: Feature, _: Feature.Context) in
-					loadingCompletion(instance)
-				},
-				unload: { (instance: Feature, _: Feature.Context) in
-					unload(instance)
-				}
-			)
-		#else
-			return DynamicCacheableFeatureLoader<Feature>(
-				load: { (_: Feature.Context, container: Features) throws -> Feature in
-					try load(container)
-				},
-				loadingCompletion: { (instance: Feature, _: Feature.Context) in
-					loadingCompletion(instance)
-				},
-				unload: { (instance: Feature, _: Feature.Context) in
-					unload(instance)
-				}
-			)
-		#endif
+	) -> Self
+	where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
+		return Self(
+			featureType: Feature.self,
+			identifier: Feature.identifier(),
+			loadInstance: { (_: AnyFeatureContext, container: Features) throws -> Feature in
+				try load(container)
+			}
+		)
 	}
-}
-
-extension FeatureLoader {
 
 	public static func cacheable<Feature>(
 		_: Feature.Type = Feature.self,
 		implementation: StaticString = #function,
 		load: @escaping @Sendable (_ context: Feature.Context, _ container: Features) throws -> Feature,
-		loadingCompletion: @escaping @Sendable (_ instance: Feature, _ context: Feature.Context) ->
-			Void = { _, _ in },
-		unload: @escaping @Sendable (_ instance: Feature, _ context: Feature.Context) -> Void = { _, _ in },
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) -> some CacheableFeatureLoader<Feature>
+	) -> Self
 	where Feature: CacheableFeature {
-		#if DEBUG
-			return DynamicCacheableFeatureLoader<Feature>(
-				debugMeta: SourceCodeMeta.message(
-					implementation,
-					file: file,
-					line: line
-				),
-				load: load,
-				loadingCompletion: loadingCompletion,
-				unload: unload
-			)
-		#else
-			return DynamicCacheableFeatureLoader<Feature>(
-				load: load,
-				loadingCompletion: loadingCompletion,
-				unload: unload
-			)
-		#endif
+		return Self(
+			featureType: Feature.self,
+			identifier: Feature.identifier(),
+			loadInstance: { (context: AnyFeatureContext, container: Features) throws -> Feature in
+				if let context: Feature.Context = context as? Feature.Context {
+					return try load(context, container)
+				}
+				else {
+					throw
+						InternalInconsistency
+						.error(
+							message: "Invalid feature loader."
+						)
+						.asAssertionFailure(
+							message: "Type mismatch in features loader. Please report a bug."
+						)
+				}
+			}
+		)
 	}
 }

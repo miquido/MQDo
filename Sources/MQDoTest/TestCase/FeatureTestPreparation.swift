@@ -1,9 +1,11 @@
+import MQDo
+
 public final class FeatureTestPreparation {
 
-	private let features: Features
+	private let features: TestFeatures
 
 	internal init(
-		features: Features
+		features: TestFeatures
 	) {
 		self.features = features
 	}
@@ -21,7 +23,7 @@ public final class FeatureTestPreparation {
 		) where Feature: StaticFeature {
 			self.features
 				.use(
-					instance: instance,
+					instance,
 					file: file,
 					line: line
 				)
@@ -36,7 +38,7 @@ public final class FeatureTestPreparation {
 		) where Feature: DisposableFeature {
 			self.features
 				.use(
-					instance: instance,
+					instance,
 					file: file,
 					line: line
 				)
@@ -48,10 +50,10 @@ public final class FeatureTestPreparation {
 			use instance: Feature,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: CacheableFeature, Feature.Context == ContextlessCacheableFeatureContext {
+		) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 			self.features
 				.use(
-					instance: instance,
+					instance,
 					file: file,
 					line: line
 				)
@@ -67,7 +69,7 @@ public final class FeatureTestPreparation {
 		) where Feature: CacheableFeature {
 			self.features
 				.use(
-					instance: instance,
+					instance,
 					context: context,
 					file: file,
 					line: line
@@ -115,10 +117,11 @@ public final class FeatureTestPreparation {
 			with updated: Property,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: CacheableFeature, Feature.Context == ContextlessCacheableFeatureContext {
+		) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 			self.features
 				.patch(
 					keyPath,
+					context: .void,
 					with: updated,
 					file: file,
 					line: line
@@ -185,10 +188,11 @@ public final class FeatureTestPreparation {
 			with update: (inout Feature) -> Void,
 			file: StaticString = #fileID,
 			line: UInt = #line
-		) where Feature: CacheableFeature, Feature.Context == ContextlessCacheableFeatureContext {
+		) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 			self.features
 				.patch(
 					feature,
+					context: .void,
 					with: update,
 					file: file,
 					line: line
@@ -223,8 +227,8 @@ public final class FeatureTestPreparation {
 			line: UInt = #line
 		) where Scope: FeaturesScope {
 			self.features
-				.setContext(
-					context,
+				.use(
+					context: context,
 					for: scopeType,
 					file: file,
 					line: line
