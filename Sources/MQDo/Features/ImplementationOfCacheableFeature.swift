@@ -18,6 +18,7 @@ extension ImplementationOfCacheableFeature {
 	) -> FeatureLoader {
 		.cacheable(
 			Self.Feature.self,
+			implementation: "\(Self.self)",
 			load: { (context: Feature.Context, container: Features) throws -> Feature in
 				try Self(
 					with: context,

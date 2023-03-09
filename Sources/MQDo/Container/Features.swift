@@ -44,10 +44,23 @@ public protocol Features: Sendable {
 		line: UInt
 	) throws -> Feature
 	where Feature: CacheableFeature
+
+	#if DEBUG
+		@Sendable func which<Feature>(
+			_: Feature.Type
+		) -> String
+		where Feature: DisposableFeature
+
+		@Sendable func which<Feature>(
+			_: Feature.Type
+		) -> String
+		where Feature: CacheableFeature
+	#endif
 }
 
 extension Features {
 
+	@_transparent
 	@Sendable public func require<Scope>(
 		_ scope: Scope.Type,
 		file: StaticString = #file,
@@ -61,6 +74,7 @@ extension Features {
 		)
 	}
 
+	@_transparent
 	@Sendable public func context<Scope>(
 		for scope: Scope.Type,
 		file: StaticString = #fileID,
@@ -77,6 +91,7 @@ extension Features {
 
 extension Features {
 
+	@_transparent
 	@_disfavoredOverload @Sendable public func branch<Scope>(
 		_ scope: Scope.Type,
 		file: StaticString = #fileID,
@@ -91,6 +106,7 @@ extension Features {
 		)
 	}
 
+	@_transparent
 	@_disfavoredOverload @Sendable public func branch<Scope>(
 		_ scope: Scope.Type,
 		context: Scope.Context,
@@ -109,6 +125,7 @@ extension Features {
 
 extension Features {
 
+	@_transparent
 	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		file: StaticString = #fileID,
@@ -122,6 +139,7 @@ extension Features {
 		)
 	}
 
+	@_transparent
 	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		context: Feature.Context,
@@ -137,6 +155,7 @@ extension Features {
 		)
 	}
 
+	@_transparent
 	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		file: StaticString = #fileID,
@@ -151,6 +170,7 @@ extension Features {
 		)
 	}
 
+	@_transparent
 	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		context: Feature.Context,
@@ -166,6 +186,7 @@ extension Features {
 		)
 	}
 
+	@_transparent
 	@Sendable public func instance<Feature>(
 		of featureType: Feature.Type = Feature.self,
 		file: StaticString = #fileID,

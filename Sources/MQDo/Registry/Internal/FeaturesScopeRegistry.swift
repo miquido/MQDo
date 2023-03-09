@@ -1,4 +1,4 @@
-internal struct FeaturesNodeRegistry<Scope>
+internal struct FeaturesScopeRegistry<Scope>
 where Scope: FeaturesScope {
 
 	internal var dynamicFeatureLoaders: Dictionary<FeatureIdentifier, FeatureLoader>
@@ -11,11 +11,11 @@ where Scope: FeaturesScope {
 	}
 }
 
-extension FeaturesNodeRegistry: Sendable {}
+extension FeaturesScopeRegistry: Sendable {}
 
-extension FeaturesNodeRegistry {
+extension FeaturesScopeRegistry {
 
-	@inline(__always)
+	@_transparent
 	@Sendable internal func loadInstance<Feature>(
 		of _: Feature.Type,
 		context: Feature.Context,
@@ -45,7 +45,7 @@ extension FeaturesNodeRegistry {
 		}
 	}
 
-	@inline(__always)
+	@_transparent
 	@Sendable internal func loadInstance<Feature>(
 		of _: Feature.Type,
 		context: Feature.Context,

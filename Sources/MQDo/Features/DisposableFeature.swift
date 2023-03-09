@@ -9,7 +9,7 @@ public protocol DisposableFeature<Context> {
 
 extension DisposableFeature {
 
-	@inline(__always)
+	@_transparent
 	internal nonisolated static func identifier() -> FeatureIdentifier {
 		FeatureIdentifier(Self.self)
 	}
