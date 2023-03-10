@@ -26,20 +26,22 @@ extension FeaturesTree {
 		try self.treeLock.withLock(execute)
 	}
 
-	@Sendable internal func nodeRegistry<Scope>(
+	@_transparent
+	@Sendable internal func registry<Scope>(
 		for scope: Scope.Type,
 		file: StaticString,
 		line: UInt
-	) throws -> FeaturesNodeRegistry<Scope>
+	) throws -> FeaturesScopeRegistry<Scope>
 	where Scope: FeaturesScope {
 		try self.featuresRegistry
-			.nodeRegistry(
+			.registry(
 				for: scope,
 				file: file,
 				line: line
 			)
 	}
 
+	@_transparent
 	@Sendable internal func instance<Feature>(
 		of feature: Feature.Type,
 		file: StaticString,

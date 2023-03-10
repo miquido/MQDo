@@ -4,13 +4,13 @@ where Scope: FeaturesScope {
 	public typealias Setup = (inout Self) -> Void
 
 	private let scopeIdentifier: FeaturesScopeIdentifier
-	private let treeRegistryUpdate: ((inout FeaturesTreeRegistry) -> Void) -> Void
+	private let treeRegistry: MutableTreeRegistry
 
-	internal init(
-		treeRegistryUpdate: @escaping ((inout FeaturesTreeRegistry) -> Void) -> Void
+	fileprivate init(
+		treeRegistry: MutableTreeRegistry
 	) {
 		self.scopeIdentifier = Scope.identifier()
-		self.treeRegistryUpdate = treeRegistryUpdate
+		self.treeRegistry = treeRegistry
 	}
 
 	public mutating func use(
@@ -18,20 +18,18 @@ where Scope: FeaturesScope {
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) {
-		self.treeRegistryUpdate { (treeRegistry: inout FeaturesTreeRegistry) in
-			#if DEBUG
-				if treeRegistry.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
-					InternalInconsistency
-						.error(
-							message: "Overriding feature implementation in features registry - this us usually a bug.",
-							file: file,
-							line: line
-						)
-						.asRuntimeWarning()
-				}  // else noop
-			#endif
-			treeRegistry.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
-		}
+		#if DEBUG
+			if self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
+				InternalInconsistency
+					.error(
+						message: "Overriding feature implementation in features registry - this us usually a bug.",
+						file: file,
+						line: line
+					)
+					.asRuntimeWarning()
+			}  // else noop
+		#endif
+		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
 	}
 
 	public mutating func use<Implementation>(
@@ -39,26 +37,24 @@ where Scope: FeaturesScope {
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) where Implementation: ImplementationOfDisposableFeature {
-		self.treeRegistryUpdate { (treeRegistry: inout FeaturesTreeRegistry) in
-			let loader: FeatureLoader =
-				Implementation
-				.loader(
-					file: file,
-					line: line
-				)
-			#if DEBUG
-				if treeRegistry.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
-					InternalInconsistency
-						.error(
-							message: "Overriding feature implementation in features registry - this us usually a bug.",
-							file: file,
-							line: line
-						)
-						.asRuntimeWarning()
-				}  // else noop
-			#endif
-			treeRegistry.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
-		}
+		let loader: FeatureLoader =
+			Implementation
+			.loader(
+				file: file,
+				line: line
+			)
+		#if DEBUG
+			if self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
+				InternalInconsistency
+					.error(
+						message: "Overriding feature implementation in features registry - this us usually a bug.",
+						file: file,
+						line: line
+					)
+					.asRuntimeWarning()
+			}  // else noop
+		#endif
+		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
 	}
 
 	public mutating func use<Implementation>(
@@ -66,26 +62,24 @@ where Scope: FeaturesScope {
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) where Implementation: ImplementationOfCacheableFeature {
-		self.treeRegistryUpdate { (treeRegistry: inout FeaturesTreeRegistry) in
-			let loader: FeatureLoader =
-				Implementation
-				.loader(
-					file: file,
-					line: line
-				)
-			#if DEBUG
-				if treeRegistry.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
-					InternalInconsistency
-						.error(
-							message: "Overriding feature implementation in features registry - this us usually a bug.",
-							file: file,
-							line: line
-						)
-						.asRuntimeWarning()
-				}  // else noop
-			#endif
-			treeRegistry.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
-		}
+		let loader: FeatureLoader =
+			Implementation
+			.loader(
+				file: file,
+				line: line
+			)
+		#if DEBUG
+			if self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
+				InternalInconsistency
+					.error(
+						message: "Overriding feature implementation in features registry - this us usually a bug.",
+						file: file,
+						line: line
+					)
+					.asRuntimeWarning()
+			}  // else noop
+		#endif
+		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
 	}
 }
 
@@ -94,18 +88,12 @@ where Scope == RootFeaturesScope {
 
 	internal init() {
 		self.scopeIdentifier = Scope.identifier()
-		var treeRegistry: FeaturesTreeRegistry = .init()
-		self.treeRegistryUpdate = { (update: (inout FeaturesTreeRegistry) -> Void) -> Void in
-			update(&treeRegistry)
-		}
+		self.treeRegistry = .init()
 	}
 
-	internal var treeRegistry: FeaturesTreeRegistry {
-		var registry: FeaturesTreeRegistry!
-		self.treeRegistryUpdate { (treeRegistry: inout FeaturesTreeRegistry) -> Void in
-			registry = treeRegistry
-		}
-		return registry
+	@_transparent
+	internal var registry: FeaturesTreeRegistry {
+		self.treeRegistry.state
 	}
 
 	public mutating func defineScope<DefinedScope>(
@@ -114,22 +102,20 @@ where Scope == RootFeaturesScope {
 		line: UInt = #line,
 		registrySetup: FeaturesRegistry<DefinedScope>.Setup
 	) where DefinedScope: FeaturesScope {
-		self.treeRegistryUpdate { (treeRegistry: inout FeaturesTreeRegistry) in
-			#if DEBUG
-				if treeRegistry.scopedDynamicFeatureLoaders[DefinedScope.identifier()] != nil {
-					InternalInconsistency
-						.error(
-							message: "Overriding features scope in features registry - this us usually a bug.",
-							file: file,
-							line: line
-						)
-						.with(Scope.self, for: "scope")
-						.asRuntimeWarning()
-				}  // else noop
-			#endif
-			treeRegistry.scopedDynamicFeatureLoaders[DefinedScope.identifier()] = .init()
-		}
-		var scopeRegistry: FeaturesRegistry<DefinedScope> = .init(treeRegistryUpdate: self.treeRegistryUpdate)
+		#if DEBUG
+			if self.treeRegistry.state.scopedDynamicFeatureLoaders[DefinedScope.identifier()] != nil {
+				InternalInconsistency
+					.error(
+						message: "Overriding features scope in features registry - this us usually a bug.",
+						file: file,
+						line: line
+					)
+					.with(Scope.self, for: "scope")
+					.asRuntimeWarning()
+			}  // else noop
+		#endif
+		self.treeRegistry.state.scopedDynamicFeatureLoaders[DefinedScope.identifier()] = .init()
+		var scopeRegistry: FeaturesRegistry<DefinedScope> = .init(treeRegistry: self.treeRegistry)
 		registrySetup(&scopeRegistry)
 	}
 
@@ -138,20 +124,18 @@ where Scope == RootFeaturesScope {
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) where Feature: StaticFeature {
-		self.treeRegistryUpdate { (treeRegistry: inout FeaturesTreeRegistry) in
-			#if DEBUG
-				if treeRegistry.staticFeatures[Feature.identifier()] != nil {
-					InternalInconsistency
-						.error(
-							message: "Overriding feature implementation in features registry - this us usually a bug.",
-							file: file,
-							line: line
-						)
-						.asRuntimeWarning()
-				}  // else noop
-			#endif
-			treeRegistry.staticFeatures[Feature.identifier()] = instance
-		}
+		#if DEBUG
+			if self.treeRegistry.state.staticFeatures[Feature.identifier()] != nil {
+				InternalInconsistency
+					.error(
+						message: "Overriding feature implementation in features registry - this us usually a bug.",
+						file: file,
+						line: line
+					)
+					.asRuntimeWarning()
+			}  // else noop
+		#endif
+		self.treeRegistry.state.staticFeatures[Feature.identifier()] = instance
 	}
 
 	public mutating func use<Implementation>(
@@ -164,5 +148,16 @@ where Scope == RootFeaturesScope {
 			file: file,
 			line: line
 		)
+	}
+}
+
+private final class MutableTreeRegistry {
+
+	fileprivate var state: FeaturesTreeRegistry
+
+	fileprivate init(
+		_ state: FeaturesTreeRegistry = .init()
+	) {
+		self.state = state
 	}
 }

@@ -5,15 +5,15 @@ public func FeaturesRoot(
 ) -> FeaturesContainer {
 	var rootFeaturesRegistry: FeaturesRegistry<RootFeaturesScope> = .init()
 	registrySetup(&rootFeaturesRegistry)
-	let featuresTreeRegistry: FeaturesTreeRegistry = rootFeaturesRegistry.treeRegistry
+	let featuresTreeRegistry: FeaturesTreeRegistry = rootFeaturesRegistry.registry
 	do {
-		return try FeaturesRootNode(
+		return try RootFeatures(
 			featuresTree: .init(
 				featuresRegistry: featuresTreeRegistry
 			),
 			featuresRegistry:
 				featuresTreeRegistry
-				.nodeRegistry(
+				.registry(
 					for: RootFeaturesScope.self,
 					file: file,
 					line: line
@@ -21,6 +21,6 @@ public func FeaturesRoot(
 		)
 	}
 	catch {
-		unreachable("It is not possible to RootFeaturesScope be not defined.")
+		unreachable("It is not possible that RootFeaturesScope is not defined.")
 	}
 }

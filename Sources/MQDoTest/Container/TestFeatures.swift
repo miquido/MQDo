@@ -332,3 +332,22 @@ extension CacheableFeature {
 		)
 	}
 }
+
+#if DEBUG
+	extension TestFeatures {
+
+		@Sendable public func which<Feature>(
+			_: Feature.Type
+		) -> String
+		where Feature: DisposableFeature {
+			"N/A"
+		}
+
+		@Sendable public func which<Feature>(
+			_: Feature.Type
+		) -> String
+		where Feature: CacheableFeature {
+			"N/A"
+		}
+	}
+#endif

@@ -17,11 +17,12 @@ extension FeaturesTreeRegistry: Sendable {}
 
 extension FeaturesTreeRegistry {
 
-	internal func nodeRegistry<Scope>(
+	@inline(__always)
+	internal func registry<Scope>(
 		for scope: Scope.Type,
 		file: StaticString,
 		line: UInt
-	) throws -> FeaturesNodeRegistry<Scope>
+	) throws -> FeaturesScopeRegistry<Scope>
 	where Scope: FeaturesScope {
 		guard let scopeDynamicFeatureLoaders: DynamicFeatureLoaders = self.scopedDynamicFeatureLoaders[scope.identifier()]
 		else {

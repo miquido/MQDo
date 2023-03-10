@@ -1,15 +1,15 @@
 import MQ
 
-internal final class FeaturesRootNode {
+internal final class RootFeatures {
 
 	private let featuresTree: FeaturesTree
-	private let featuresRegistry: FeaturesNodeRegistry<RootFeaturesScope>
+	private let featuresRegistry: FeaturesScopeRegistry<RootFeaturesScope>
 	// ensure that cache is always accessed using tree lock
 	private var featuresCache: FeaturesCache
 
 	internal init(
 		featuresTree: FeaturesTree,
-		featuresRegistry: FeaturesNodeRegistry<RootFeaturesScope>
+		featuresRegistry: FeaturesScopeRegistry<RootFeaturesScope>
 	) {
 		self.featuresTree = featuresTree
 		self.featuresRegistry = featuresRegistry
@@ -17,10 +17,11 @@ internal final class FeaturesRootNode {
 	}
 }
 
-extension FeaturesRootNode: @unchecked Sendable {}
+extension RootFeatures: @unchecked Sendable {}
 
-extension FeaturesRootNode: FeaturesContainer {
+extension RootFeatures: FeaturesContainer {
 
+	@_transparent
 	@Sendable internal func require<Scope>(
 		_ scope: Scope.Type,
 		file: StaticString = #file,
@@ -46,6 +47,7 @@ extension FeaturesRootNode: FeaturesContainer {
 		}
 	}
 
+	@_transparent
 	@Sendable internal func context<Scope>(
 		for scope: Scope.Type,
 		file: StaticString,
@@ -67,6 +69,7 @@ extension FeaturesRootNode: FeaturesContainer {
 			)
 	}
 
+	@_transparent
 	@Sendable internal func branch<Scope>(
 		_ scope: Scope.Type,
 		context: Scope.Context,
@@ -74,12 +77,12 @@ extension FeaturesRootNode: FeaturesContainer {
 		line: UInt
 	) throws -> FeaturesContainer
 	where Scope: FeaturesScope {
-		try FeaturesNode<Scope>(
+		try ScopedFeatures<Scope>(
 			featuresTree: self.featuresTree,
 			parent: self,
 			context: context,
 			featuresRegistry: self.featuresTree
-				.nodeRegistry(
+				.registry(
 					for: scope,
 					file: file,
 					line: line
@@ -113,7 +116,7 @@ extension FeaturesRootNode: FeaturesContainer {
 				.loadInstance(
 					of: feature,
 					context: context,
-					using: FeaturesProxyNode(
+					using: FeaturesProxy(
 						self,
 						featuresTree: self.featuresTree
 					),
@@ -153,7 +156,7 @@ extension FeaturesRootNode: FeaturesContainer {
 						.loadInstance(
 							of: feature,
 							context: context,
-							using: FeaturesProxyNode(
+							using: FeaturesProxy(
 								self,
 								featuresTree: self.featuresTree
 							),
@@ -179,4 +182,30 @@ extension FeaturesRootNode: FeaturesContainer {
 			}
 		}
 	}
+
+	#if DEBUG
+		@Sendable internal func which<Feature>(
+			_: Feature.Type
+		) -> String
+		where Feature: DisposableFeature {
+			if let loader: FeatureLoader = self.featuresRegistry.dynamicFeatureLoaders[Feature.identifier()] {
+				return "---\nScope: \(RootFeaturesScope.self)\n\(loader.debugDescription)"
+			}
+			else {
+				return "---\nFeature \(Feature.self) is not defined!"
+			}
+		}
+
+		@Sendable internal func which<Feature>(
+			_: Feature.Type
+		) -> String
+		where Feature: CacheableFeature {
+			if let loader: FeatureLoader = self.featuresRegistry.dynamicFeatureLoaders[Feature.identifier()] {
+				return "---\nScope: \(RootFeaturesScope.self)\n\(loader.debugDescription)"
+			}
+			else {
+				return "---\nFeature \(Feature.self) is not defined!"
+			}
+		}
+	#endif
 }

@@ -9,7 +9,7 @@ internal typealias FeaturesScopeIdentifier = ObjectIdentifier
 
 extension FeaturesScope {
 
-	@inline(__always)
+	@_transparent
 	internal nonisolated static func identifier() -> FeaturesScopeIdentifier {
 		FeaturesScopeIdentifier(Self.self)
 	}

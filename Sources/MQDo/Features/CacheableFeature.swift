@@ -16,7 +16,7 @@ public struct CacheableFeatureVoidContext: CacheableFeatureContext {
 
 extension CacheableFeature {
 
-	@inline(__always)
+	@_transparent
 	internal nonisolated static func identifier() -> FeatureIdentifier {
 		FeatureIdentifier(Self.self)
 	}

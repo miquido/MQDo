@@ -7,7 +7,7 @@ public protocol StaticFeature: Sendable {
 
 extension StaticFeature {
 
-	@inline(__always)
+	@_transparent
 	internal nonisolated static func identifier() -> FeatureIdentifier {
 		FeatureIdentifier(Self.self)
 	}

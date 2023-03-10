@@ -1,4 +1,4 @@
-internal struct FeaturesProxyNode {
+internal struct FeaturesProxy {
 
 	private weak var container: FeaturesContainer?
 	private unowned let featuresTree: FeaturesTree
@@ -12,9 +12,10 @@ internal struct FeaturesProxyNode {
 	}
 }
 
-extension FeaturesProxyNode: Features {
+extension FeaturesProxy: Features {
 
-	@Sendable public func require<Scope>(
+	@_transparent
+	@Sendable internal func require<Scope>(
 		_ scope: Scope.Type,
 		file: StaticString = #file,
 		line: UInt = #line
@@ -44,6 +45,7 @@ extension FeaturesProxyNode: Features {
 		}
 	}
 
+	@_transparent
 	@Sendable internal func context<RequestedScope>(
 		for scope: RequestedScope.Type,
 		file: StaticString,
@@ -74,6 +76,7 @@ extension FeaturesProxyNode: Features {
 		}
 	}
 
+	@_transparent
 	@Sendable internal func branch<Scope>(
 		_ scope: Scope.Type,
 		context: Scope.Context,
@@ -106,6 +109,7 @@ extension FeaturesProxyNode: Features {
 		}
 	}
 
+	@_transparent
 	@Sendable internal func instance<Feature>(
 		of feature: Feature.Type,
 		file: StaticString,
@@ -141,6 +145,7 @@ extension FeaturesProxyNode: Features {
 		}
 	}
 
+	@_transparent
 	@Sendable internal func instance<Feature>(
 		of feature: Feature.Type,
 		context: Feature.Context,
@@ -180,6 +185,7 @@ extension FeaturesProxyNode: Features {
 		}
 	}
 
+	@_transparent
 	@Sendable internal func instance<Feature>(
 		of feature: Feature.Type,
 		context: Feature.Context,
@@ -218,4 +224,30 @@ extension FeaturesProxyNode: Features {
 				)
 		}
 	}
+
+	#if DEBUG
+		@Sendable internal func which<Feature>(
+			_: Feature.Type
+		) -> String
+		where Feature: DisposableFeature {
+			if let container: FeaturesContainer = self.container {
+				return container.which(Feature.self)
+			}
+			else {
+				return "N/A"
+			}
+		}
+
+		@Sendable internal func which<Feature>(
+			_: Feature.Type
+		) -> String
+		where Feature: CacheableFeature {
+			if let container: FeaturesContainer = self.container {
+				return container.which(Feature.self)
+			}
+			else {
+				return "N/A"
+			}
+		}
+	#endif
 }

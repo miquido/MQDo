@@ -1,6 +1,5 @@
-import XCTest
-
 import MQDo
+import XCTest
 
 final class FeaturesRegistryTests: XCTestCase {
 
