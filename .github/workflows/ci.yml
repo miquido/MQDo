@@ -18,5 +18,5 @@ jobs:
       run: sudo xcode-select -s /Applications/Xcode_14.2.0.app
     - name: Run tests
       run: make test
-    - name: Verify release build
-      run: make release_build
+    - name: Verify builds
+      run: make ci_build

@@ -5,7 +5,6 @@
 .build
 /Packages
 /*.xcodeproj
-/*.xcworkspace
 *.xccheckout
 xcuserdata/
 DerivedData/
