@@ -1,6 +1,6 @@
 import MQ
 
-public struct MockIssue: TheError, Hashable {
+public struct DummyIssue: TheError, Hashable {
 
 	public static func error(
 		file: StaticString = #fileID,
@@ -8,7 +8,7 @@ public struct MockIssue: TheError, Hashable {
 	) -> Self {
 		Self(
 			context: .context(
-				message: "MockIssue",
+				message: "DummyIssue",
 				file: file,
 				line: line
 			)

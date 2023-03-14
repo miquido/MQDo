@@ -2,20 +2,32 @@ import MQDo
 
 import class Foundation.NSRecursiveLock
 
-public final class TestFeatures {
+public final class DummyFeatures {
 
 	private let lock: NSRecursiveLock
 	private var items: Dictionary<ItemIdentifier, Any>
 
 	public init() {
 		self.lock = .init()
-		self.items = .init()
+		self.items = [
+			Diagnostics.itemIdentifier(): Diagnostics.disabled
+		]
+	}
+
+	public init(
+		with patches: (FeaturePatches) -> Void
+	) {
+		self.lock = .init()
+		self.items = [
+			Diagnostics.itemIdentifier(): Diagnostics.disabled
+		]
+		patches(FeaturePatches(using: self))
 	}
 }
 
-extension TestFeatures: @unchecked Sendable {}
+extension DummyFeatures: @unchecked Sendable {}
 
-extension TestFeatures: FeaturesContainer {
+extension DummyFeatures: FeaturesContainer {
 
 	@Sendable public func context<Scope>(
 		for scope: Scope.Type,
@@ -101,7 +113,7 @@ extension TestFeatures: FeaturesContainer {
 	}
 }
 
-extension TestFeatures {
+extension DummyFeatures {
 
 	@Sendable public func use<Scope>(
 		context: Scope.Context,
@@ -262,7 +274,7 @@ extension TestFeatures {
 	}
 }
 
-extension TestFeatures {
+extension DummyFeatures {
 
 	fileprivate struct ItemIdentifier: Hashable, @unchecked Sendable {
 
@@ -302,21 +314,21 @@ extension TestFeatures {
 
 extension FeaturesScope {
 
-	fileprivate static func valueIdentifier() -> TestFeatures.ItemIdentifier {
+	fileprivate static func valueIdentifier() -> DummyFeatures.ItemIdentifier {
 		.init(Self.self)
 	}
 }
 
 extension StaticFeature {
 
-	fileprivate static func itemIdentifier() -> TestFeatures.ItemIdentifier {
+	fileprivate static func itemIdentifier() -> DummyFeatures.ItemIdentifier {
 		.init(Self.self)
 	}
 }
 
 extension DisposableFeature {
 
-	fileprivate static func itemIdentifier() -> TestFeatures.ItemIdentifier {
+	fileprivate static func itemIdentifier() -> DummyFeatures.ItemIdentifier {
 		.init(Self.self)
 	}
 }
@@ -325,7 +337,7 @@ extension CacheableFeature {
 
 	fileprivate static func itemIdentifier(
 		context: Self.Context?
-	) -> TestFeatures.ItemIdentifier {
+	) -> DummyFeatures.ItemIdentifier {
 		.init(
 			Self.self,
 			context: context
@@ -334,7 +346,7 @@ extension CacheableFeature {
 }
 
 #if DEBUG
-	extension TestFeatures {
+	extension DummyFeatures {
 
 		@Sendable public func which<Feature>(
 			_: Feature.Type

@@ -1,6 +1,5 @@
+import MQDo
 import XCTest
-
-@testable import MQDo
 
 class Playground_Test: XCTestCase {
 

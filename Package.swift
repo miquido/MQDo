@@ -17,6 +17,7 @@ let package = Package(
 				"MQDo"
 			]
 		),
+		// to be extracted as a separate package
 		.library(
 			name: "MQBase",
 			targets: [
@@ -24,9 +25,9 @@ let package = Package(
 			]
 		),
 		.library(
-			name: "MQDoTest",
+			name: "MQDummy",
 			targets: [
-				"MQDoTest"
+				"MQDummy"
 			]
 		),
 	],
@@ -69,7 +70,7 @@ let package = Package(
 			]
 		),
 		.target(
-			name: "MQDoTest",
+			name: "MQDummy",
 			dependencies: [
 				"MQDo",
 				.product(

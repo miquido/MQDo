@@ -1,4 +1,4 @@
-import MQDo
+import MQ
 
 // MARK: - Interface
 
@@ -35,15 +35,19 @@ extension Diagnostics {
 
 	public static var disabled: Diagnostics {
 		.init(
-			appInfo: { "N/A" },
-			deviceInfo: { "N/A" },
+			appInfo: {
+				FeatureUnavailable
+					.error(feature: Diagnostics.self)
+					.displayableMessage.resolved
+			},
+			deviceInfo: {
+				FeatureUnavailable
+					.error(feature: Diagnostics.self)
+					.displayableMessage.resolved
+			},
 			log: noop,
-			diagnosticsInfo: { ["N/A"] }
+			diagnosticsInfo: { .init() }
 		)
-	}
-
-	public static var os: Diagnostics {
-		OSDiagnostics.shared.instance
 	}
 }
 

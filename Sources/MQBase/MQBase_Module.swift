@@ -5,7 +5,6 @@ extension FeaturesRegistry
 where Scope == RootFeaturesScope {
 
 	public mutating func useBaseFeatures() {
-		self.use(OSDiagnostics.self)
 		self.use(SystemAsyncExecutor.self)
 	}
 }
