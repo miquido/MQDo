@@ -4,12 +4,15 @@ import XCTest
 @MainActor
 open class FeatureTests: XCTestCase {
 
+	open func commonPatches(
+		_ patches: FeaturePatches
+	) {
+		/* noop - to be overriden */
+	}
+
 	public final override class func setUp() {
 		super.setUp()
 		runtimeAssertionMethod = { _, _, _, _ in }
-	}
-
-	open var commonPreparation: (FeaturePatches) -> Void = { (_: FeaturePatches) -> Void in /* noop */
 	}
 
 	public final override func setUp() {
@@ -30,7 +33,7 @@ open class FeatureTests: XCTestCase {
 
 	public final func test(
 		timeout: TimeInterval,
-		preparation: @escaping (FeaturePatches) -> Void,
+		patches: @escaping (FeaturePatches) -> Void,
 		execute: @escaping (DummyFeatures) async throws -> Void,
 		file: StaticString,
 		line: UInt
@@ -42,11 +45,11 @@ open class FeatureTests: XCTestCase {
 		let testTask: Task<Void, Never> = .init {
 			do {
 				let testFeatures: DummyFeatures = .init()
-				let testPreparation: FeaturePatches = .init(
+				let testPatches: FeaturePatches = .init(
 					using: testFeatures
 				)
-				self.commonPreparation(testPreparation)
-				preparation(testPreparation)
+				self.commonPatches(testPatches)
+				patches(testPatches)
 				try await execute(testFeatures)
 			}
 			catch {
@@ -65,7 +68,7 @@ open class FeatureTests: XCTestCase {
 
 	public final func test<Returned>(
 		timeout: TimeInterval,
-		preparation: @escaping (FeaturePatches) -> Void,
+		patches: @escaping (FeaturePatches) -> Void,
 		returnsEqual expected: Returned,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
 		file: StaticString,
@@ -73,7 +76,7 @@ open class FeatureTests: XCTestCase {
 	) where Returned: Equatable {
 		self.test(
 			timeout: timeout,
-			preparation: preparation,
+			patches: patches,
 			execute: { (testFeatures: DummyFeatures) throws -> Void in
 				let returned: Returned = try await execute(
 					testFeatures
@@ -92,7 +95,7 @@ open class FeatureTests: XCTestCase {
 
 	public final func test<Returned, ExpectedError>(
 		timeout: TimeInterval,
-		preparation: @escaping (FeaturePatches) -> Void,
+		patches: @escaping (FeaturePatches) -> Void,
 		throws expected: ExpectedError.Type,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
 		file: StaticString,
@@ -100,7 +103,7 @@ open class FeatureTests: XCTestCase {
 	) where ExpectedError: Error {
 		self.test(
 			timeout: timeout,
-			preparation: preparation,
+			patches: patches,
 			execute: { (testFeatures: DummyFeatures) throws -> Void in
 				do {
 					_ = try await execute(
@@ -123,7 +126,7 @@ open class FeatureTests: XCTestCase {
 
 	public final func test<Returned>(
 		timeout: TimeInterval,
-		preparation: @escaping (FeaturePatches, @escaping @Sendable () -> Void) -> Void,
+		patches: @escaping (FeaturePatches, @escaping @Sendable () -> Void) -> Void,
 		executedPrepared expectedExecutionCount: UInt,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
 		file: StaticString,
@@ -132,8 +135,8 @@ open class FeatureTests: XCTestCase {
 		let executedCount: CriticalSection<UInt> = .init(0)
 		self.test(
 			timeout: timeout,
-			preparation: { (testPreparation: FeaturePatches) in
-				preparation(
+			patches: { (testPreparation: FeaturePatches) in
+				patches(
 					testPreparation
 				) {
 					executedCount.access { (count: inout UInt) -> Void in
@@ -158,7 +161,7 @@ open class FeatureTests: XCTestCase {
 
 	public final func test<Returned, Argument>(
 		timeout: TimeInterval,
-		preparation: @escaping (FeaturePatches, @escaping @Sendable (Argument) -> Void) -> Void,
+		patches: @escaping (FeaturePatches, @escaping @Sendable (Argument) -> Void) -> Void,
 		executedPreparedUsing expectedArgument: Argument,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
 		file: StaticString,
@@ -167,8 +170,8 @@ open class FeatureTests: XCTestCase {
 		let usedArgument: CriticalSection<Argument?> = .init(.none)
 		self.test(
 			timeout: timeout,
-			preparation: { (testPreparation: FeaturePatches) in
-				preparation(
+			patches: { (testPreparation: FeaturePatches) in
+				patches(
 					testPreparation
 				) { (argument: Argument) in
 					usedArgument.access { (used: inout Argument?) -> Void in
