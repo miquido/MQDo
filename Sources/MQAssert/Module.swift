@@ -1,5 +1,4 @@
 // Package constants and additional exported symbols.
 
-@_exported import MQ
-@_exported import MQDo
+@_exported import MQDummy
 @_exported import XCTest

@@ -4,7 +4,7 @@ public final class FeaturePatches {
 
 	private let features: DummyFeatures
 
-	internal init(
+	public init(
 		using features: DummyFeatures
 	) {
 		self.features = features
