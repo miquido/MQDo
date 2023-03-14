@@ -11,10 +11,12 @@ public struct DummyIssue: TheError, Hashable {
 				message: "DummyIssue",
 				file: file,
 				line: line
-			)
+			),
+			displayableMessage: .string("DummyIssue")
 		)
 	}
 
 	/// Source code context of this error.
 	public var context: SourceCodeContext
+	public var displayableMessage: DisplayableString
 }

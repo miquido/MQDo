@@ -7,15 +7,8 @@ public final class DummyFeatures {
 	private let lock: NSRecursiveLock
 	private var items: Dictionary<ItemIdentifier, Any>
 
-	public init() {
-		self.lock = .init()
-		self.items = [
-			Diagnostics.itemIdentifier(): Diagnostics.disabled
-		]
-	}
-
 	public init(
-		with patches: (FeaturePatches) -> Void
+		with patches: (FeaturePatches) -> Void = { _ in /* noop */ }
 	) {
 		self.lock = .init()
 		self.items = [
