@@ -30,6 +30,12 @@ let package = Package(
 				"MQDummy"
 			]
 		),
+		.library(
+			name: "MQAssert",
+			targets: [
+				"MQAssert"
+			]
+		),
 	],
 	dependencies: [
 		.package(
@@ -72,6 +78,17 @@ let package = Package(
 		.target(
 			name: "MQDummy",
 			dependencies: [
+				"MQDo",
+				.product(
+					name: "MQ",
+					package: "mq-ios"
+				),
+			]
+		),
+		.target(
+			name: "MQAssert",
+			dependencies: [
+				"MQDummy",
 				"MQDo",
 				.product(
 					name: "MQ",
