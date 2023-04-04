@@ -32,6 +32,25 @@ where Scope: FeaturesScope {
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
 	}
 
+	public mutating func use(
+		_ loader: AsyncFeatureLoader,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) {
+		#if DEBUG
+			if self.treeRegistry.state.scopedAsyncDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
+				InternalInconsistency
+					.error(
+						message: "Overriding feature implementation in features registry - this us usually a bug.",
+						file: file,
+						line: line
+					)
+					.asRuntimeWarning()
+			}  // else noop
+		#endif
+		self.treeRegistry.state.scopedAsyncDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
+	}
+
 	public mutating func use<Implementation>(
 		_ implementation: Implementation.Type,
 		file: StaticString = #fileID,
@@ -55,6 +74,31 @@ where Scope: FeaturesScope {
 			}  // else noop
 		#endif
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
+	}
+
+	public mutating func use<Implementation>(
+		_ implementation: Implementation.Type,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) where Implementation: ImplementationOfAsyncDisposableFeature {
+		let loader: AsyncFeatureLoader =
+			Implementation
+			.loader(
+				file: file,
+				line: line
+			)
+		#if DEBUG
+			if self.treeRegistry.state.scopedAsyncDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
+				InternalInconsistency
+					.error(
+						message: "Overriding feature implementation in features registry - this us usually a bug.",
+						file: file,
+						line: line
+					)
+					.asRuntimeWarning()
+			}  // else noop
+		#endif
+		self.treeRegistry.state.scopedAsyncDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
 	}
 
 	public mutating func use<Implementation>(
@@ -103,7 +147,9 @@ where Scope == RootFeaturesScope {
 		registrySetup: FeaturesRegistry<DefinedScope>.Setup
 	) where DefinedScope: FeaturesScope {
 		#if DEBUG
-			if self.treeRegistry.state.scopedDynamicFeatureLoaders[DefinedScope.identifier()] != nil {
+			if self.treeRegistry.state.scopedDynamicFeatureLoaders[DefinedScope.identifier()] != nil,
+				self.treeRegistry.state.scopedAsyncDynamicFeatureLoaders[DefinedScope.identifier()] != nil
+			{
 				InternalInconsistency
 					.error(
 						message: "Overriding features scope in features registry - this us usually a bug.",
@@ -115,6 +161,7 @@ where Scope == RootFeaturesScope {
 			}  // else noop
 		#endif
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[DefinedScope.identifier()] = .init()
+		self.treeRegistry.state.scopedAsyncDynamicFeatureLoaders[DefinedScope.identifier()] = .init()
 		var scopeRegistry: FeaturesRegistry<DefinedScope> = .init(treeRegistry: self.treeRegistry)
 		registrySetup(&scopeRegistry)
 	}

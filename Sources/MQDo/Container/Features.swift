@@ -42,6 +42,14 @@ public protocol Features: Sendable {
 		context: Feature.Context,
 		file: StaticString,
 		line: UInt
+	) async throws -> Feature
+	where Feature: AsyncDisposableFeature
+
+	@Sendable func instance<Feature>(
+		of featureType: Feature.Type,
+		context: Feature.Context,
+		file: StaticString,
+		line: UInt
 	) throws -> Feature
 	where Feature: CacheableFeature
 
@@ -176,6 +184,37 @@ extension Features {
 		context: Feature.Context,
 		file: StaticString = #fileID,
 		line: UInt = #line
+	) async throws -> Feature
+	where Feature: AsyncDisposableFeature {
+		try await self.instance(
+			of: featureType,
+			context: context,
+			file: file,
+			line: line
+		)
+	}
+
+	@_transparent
+	@Sendable public func instance<Feature>(
+		of featureType: Feature.Type = Feature.self,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) async throws -> Feature
+	where Feature: AsyncDisposableFeature, Feature.Context == Void {
+		try await self.instance(
+			of: featureType,
+			context: Void(),
+			file: file,
+			line: line
+		)
+	}
+
+	@_transparent
+	@Sendable public func instance<Feature>(
+		of featureType: Feature.Type = Feature.self,
+		context: Feature.Context,
+		file: StaticString = #fileID,
+		line: UInt = #line
 	) throws -> Feature
 	where Feature: CacheableFeature {
 		try self.instance(
@@ -211,8 +250,9 @@ extension Features {
 		line: UInt = #line
 	) -> DeferredInstance<Feature>
 	where Feature: DisposableFeature {
-		DeferredInstance {
-			try self.instance(
+		let proxy: FeaturesProxy = .proxy(from: self)
+		return DeferredInstance {
+			try proxy.instance(
 				of: featureType,
 				context: context,
 				file: file,
@@ -227,8 +267,44 @@ extension Features {
 		line: UInt = #line
 	) -> DeferredInstance<Feature>
 	where Feature: DisposableFeature, Feature.Context == Void {
-		DeferredInstance {
-			try self.instance(
+		let proxy: FeaturesProxy = .proxy(from: self)
+		return DeferredInstance {
+			try proxy.instance(
+				of: featureType,
+				context: Void(),
+				file: file,
+				line: line
+			)
+		}
+	}
+
+	@Sendable public func deferredInstance<Feature>(
+		of featureType: Feature.Type = Feature.self,
+		context: Feature.Context,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) -> AsyncDeferredInstance<Feature>
+	where Feature: AsyncDisposableFeature {
+		let proxy: FeaturesProxy = .proxy(from: self)
+		return AsyncDeferredInstance {
+			try await proxy.instance(
+				of: featureType,
+				context: context,
+				file: file,
+				line: line
+			)
+		}
+	}
+
+	@Sendable public func deferredInstance<Feature>(
+		of featureType: Feature.Type = Feature.self,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) -> AsyncDeferredInstance<Feature>
+	where Feature: AsyncDisposableFeature, Feature.Context == Void {
+		let proxy: FeaturesProxy = .proxy(from: self)
+		return AsyncDeferredInstance {
+			try await proxy.instance(
 				of: featureType,
 				context: Void(),
 				file: file,

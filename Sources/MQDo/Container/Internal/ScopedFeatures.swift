@@ -3,7 +3,7 @@ import MQ
 internal final class ScopedFeatures<Scope>
 where Scope: FeaturesScope {
 
-	private let featuresTree: FeaturesTree
+	internal let featuresTree: FeaturesTree
 	private let parent: FeaturesContainer
 	private let context: Scope.Context
 	private let featuresRegistry: FeaturesScopeRegistry<Scope>
@@ -126,6 +126,40 @@ extension ScopedFeatures: FeaturesContainer {
 		}
 		catch is FeatureUndefined {
 			return try self.parent
+				.instance(
+					of: feature,
+					context: context,
+					file: file,
+					line: line
+				)
+		}
+		catch {
+			throw error
+		}
+	}
+
+	@Sendable internal func instance<Feature>(
+		of feature: Feature.Type,
+		context: Feature.Context,
+		file: StaticString,
+		line: UInt
+	) async throws -> Feature
+	where Feature: AsyncDisposableFeature {
+		do {
+			return try await self.featuresRegistry
+				.loadInstance(
+					of: feature,
+					context: context,
+					using: FeaturesProxy(
+						self,
+						featuresTree: self.featuresTree
+					),
+					file: file,
+					line: line
+				)
+		}
+		catch is FeatureUndefined {
+			return try await self.parent
 				.instance(
 					of: feature,
 					context: context,

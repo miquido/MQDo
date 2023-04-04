@@ -2,7 +2,7 @@ import MQ
 
 internal final class RootFeatures {
 
-	private let featuresTree: FeaturesTree
+	internal let featuresTree: FeaturesTree
 	private let featuresRegistry: FeaturesScopeRegistry<RootFeaturesScope>
 	// ensure that cache is always accessed using tree lock
 	private var featuresCache: FeaturesCache
@@ -113,6 +113,41 @@ extension RootFeatures: FeaturesContainer {
 	where Feature: DisposableFeature {
 		do {
 			return try self.featuresRegistry
+				.loadInstance(
+					of: feature,
+					context: context,
+					using: FeaturesProxy(
+						self,
+						featuresTree: self.featuresTree
+					),
+					file: file,
+					line: line
+				)
+		}
+		catch let error as FeatureUndefined {
+			throw
+				error
+				.asRuntimeWarning(
+					message:
+						"Undefined feature is likely a bug. If a feature should be unavailable please make it explicit by registering loader on root, which throws an aproppriate error.",
+					file: file,
+					line: line
+				)
+		}
+		catch {
+			throw error
+		}
+	}
+
+	@Sendable internal func instance<Feature>(
+		of feature: Feature.Type,
+		context: Feature.Context,
+		file: StaticString,
+		line: UInt
+	) async throws -> Feature
+	where Feature: AsyncDisposableFeature {
+		do {
+			return try await self.featuresRegistry
 				.loadInstance(
 					of: feature,
 					context: context,

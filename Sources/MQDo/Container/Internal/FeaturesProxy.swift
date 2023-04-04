@@ -10,6 +10,23 @@ internal struct FeaturesProxy {
 		self.container = container
 		self.featuresTree = featuresTree
 	}
+
+	internal static func proxy(
+		from features: Features
+	) -> Self {
+		if let proxyFeatures: Self = features as? FeaturesProxy {
+			return proxyFeatures
+		}
+		else if let featuresTreeNode: FeaturesTreeNode = features as? FeaturesTreeNode {
+			return .init(
+				featuresTreeNode,
+				featuresTree: featuresTreeNode.featuresTree
+			)
+		}
+		else {
+			unreachable("Only FeaturesProxy and FeaturesTreeNode implementations of Features are available.")
+		}
+	}
 }
 
 extension FeaturesProxy: Features {
@@ -156,6 +173,46 @@ extension FeaturesProxy: Features {
 		if let container: FeaturesContainer = self.container {
 			return
 				try container
+				.instance(
+					of: feature,
+					context: context,
+					file: file,
+					line: line
+				)
+		}
+		else {
+			throw
+				FeatureLoadingFailed
+				.error(
+					feature: feature,
+					cause:
+						FeaturesContainerUnavailable
+						.error(
+							file: file,
+							line: line
+						),
+					file: file,
+					line: line
+				)
+				.asRuntimeWarning(
+					message: "Using detached features container. This is an issue.",
+					file: file,
+					line: line
+				)
+		}
+	}
+
+	@_transparent
+	@Sendable internal func instance<Feature>(
+		of feature: Feature.Type,
+		context: Feature.Context,
+		file: StaticString,
+		line: UInt
+	) async throws -> Feature
+	where Feature: AsyncDisposableFeature {
+		if let container: FeaturesContainer = self.container {
+			return
+				try await container
 				.instance(
 					of: feature,
 					context: context,

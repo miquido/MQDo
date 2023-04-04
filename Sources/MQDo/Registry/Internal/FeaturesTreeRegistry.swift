@@ -3,15 +3,20 @@ import struct MQ.OSDiagnostics
 internal struct FeaturesTreeRegistry {
 
 	internal typealias DynamicFeatureLoaders = Dictionary<FeatureIdentifier, FeatureLoader>
+	internal typealias AsyncDynamicFeatureLoaders = Dictionary<FeatureIdentifier, AsyncFeatureLoader>
 
 	internal var staticFeatures: Dictionary<FeatureIdentifier, any StaticFeature> = .init()
 	internal var scopedDynamicFeatureLoaders: Dictionary<FeaturesScopeIdentifier, DynamicFeatureLoaders>
+	internal var scopedAsyncDynamicFeatureLoaders: Dictionary<FeaturesScopeIdentifier, AsyncDynamicFeatureLoaders>
 
 	internal init() {
 		self.staticFeatures = [
 			Diagnostics.identifier(): OSDiagnostics.shared.instance
 		]
 		self.scopedDynamicFeatureLoaders = [
+			RootFeaturesScope.identifier(): .init()
+		]
+		self.scopedAsyncDynamicFeatureLoaders = [
 			RootFeaturesScope.identifier(): .init()
 		]
 	}
@@ -28,7 +33,11 @@ extension FeaturesTreeRegistry {
 		line: UInt
 	) throws -> FeaturesScopeRegistry<Scope>
 	where Scope: FeaturesScope {
-		guard let scopeDynamicFeatureLoaders: DynamicFeatureLoaders = self.scopedDynamicFeatureLoaders[scope.identifier()]
+		guard
+			let scopeDynamicFeatureLoaders: DynamicFeatureLoaders = self.scopedDynamicFeatureLoaders[scope.identifier()],
+			let scopeAsyncDynamicFeatureLoaders: AsyncDynamicFeatureLoaders = self.scopedAsyncDynamicFeatureLoaders[
+				scope.identifier()
+			]
 		else {
 			throw
 				FeaturesScopeUndefined
@@ -46,7 +55,8 @@ extension FeaturesTreeRegistry {
 
 		return .init(
 			for: scope,
-			dynamicFeatureLoaders: scopeDynamicFeatureLoaders
+			dynamicFeatureLoaders: scopeDynamicFeatureLoaders,
+			asyncDynamicFeatureLoaders: scopeAsyncDynamicFeatureLoaders
 		)
 	}
 }
