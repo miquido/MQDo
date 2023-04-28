@@ -19,24 +19,24 @@ extension FeaturesCache {
 				context: context
 			)
 			#if DEBUG
-				guard let feature: any CacheableFeature = self.values[key]
-				else { return .none }
+			guard let feature: any CacheableFeature = self.values[key]
+			else { return .none }
 
-				if let feature: Feature = feature as? Feature {
-					return feature
-				}
-				else {
-					InternalInconsistency
-						.error(
-							message: "Ignoring invalid cache entry."
-						)
-						.asRuntimeWarning(
-							message: "Type mismatch in features cache, please report a bug."
-						)
-					return .none
-				}
+			if let feature: Feature = feature as? Feature {
+				return feature
+			}
+			else {
+				InternalInconsistency
+					.error(
+						message: "Ignoring invalid cache entry."
+					)
+					.asRuntimeWarning(
+						message: "Type mismatch in features cache, please report a bug."
+					)
+				return .none
+			}
 			#else
-				return self.values[key] as? Feature
+			return self.values[key] as? Feature
 			#endif
 		}
 		set {

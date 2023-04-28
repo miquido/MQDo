@@ -46,15 +46,15 @@ public protocol Features: Sendable {
 	where Feature: CacheableFeature
 
 	#if DEBUG
-		@Sendable func which<Feature>(
-			_: Feature.Type
-		) -> String
-		where Feature: DisposableFeature
+	@Sendable func which<Feature>(
+		_: Feature.Type
+	) -> String
+	where Feature: DisposableFeature
 
-		@Sendable func which<Feature>(
-			_: Feature.Type
-		) -> String
-		where Feature: CacheableFeature
+	@Sendable func which<Feature>(
+		_: Feature.Type
+	) -> String
+	where Feature: CacheableFeature
 	#endif
 }
 

@@ -24,15 +24,16 @@ public struct FeatureLoadingFailed: TheError {
 		line: UInt = #line
 	) -> Self {
 		Self(
-			context: .merging(
-				cause.context,
-				.context(
-					message: message,
-					file: file,
-					line: line
+			context:
+				.merging(
+					cause.context,
+					.context(
+						message: message,
+						file: file,
+						line: line
+					)
 				)
-			)
-			.with(feature, for: "feature"),
+				.with(feature, for: "feature"),
 			cause: cause
 		)
 	}

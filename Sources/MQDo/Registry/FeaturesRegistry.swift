@@ -19,15 +19,15 @@ where Scope: FeaturesScope {
 		line: UInt = #line
 	) {
 		#if DEBUG
-			if self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
-				InternalInconsistency
-					.error(
-						message: "Overriding feature implementation in features registry - this us usually a bug.",
-						file: file,
-						line: line
-					)
-					.asRuntimeWarning()
-			}  // else noop
+		if self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
+			InternalInconsistency
+				.error(
+					message: "Overriding feature implementation in features registry - this us usually a bug.",
+					file: file,
+					line: line
+				)
+				.asRuntimeWarning()
+		}  // else noop
 		#endif
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
 	}
@@ -44,15 +44,15 @@ where Scope: FeaturesScope {
 				line: line
 			)
 		#if DEBUG
-			if self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
-				InternalInconsistency
-					.error(
-						message: "Overriding feature implementation in features registry - this us usually a bug.",
-						file: file,
-						line: line
-					)
-					.asRuntimeWarning()
-			}  // else noop
+		if self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
+			InternalInconsistency
+				.error(
+					message: "Overriding feature implementation in features registry - this us usually a bug.",
+					file: file,
+					line: line
+				)
+				.asRuntimeWarning()
+		}  // else noop
 		#endif
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
 	}
@@ -69,15 +69,15 @@ where Scope: FeaturesScope {
 				line: line
 			)
 		#if DEBUG
-			if self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
-				InternalInconsistency
-					.error(
-						message: "Overriding feature implementation in features registry - this us usually a bug.",
-						file: file,
-						line: line
-					)
-					.asRuntimeWarning()
-			}  // else noop
+		if self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] != nil {
+			InternalInconsistency
+				.error(
+					message: "Overriding feature implementation in features registry - this us usually a bug.",
+					file: file,
+					line: line
+				)
+				.asRuntimeWarning()
+		}  // else noop
 		#endif
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
 	}
@@ -103,16 +103,16 @@ where Scope == RootFeaturesScope {
 		registrySetup: FeaturesRegistry<DefinedScope>.Setup
 	) where DefinedScope: FeaturesScope {
 		#if DEBUG
-			if self.treeRegistry.state.scopedDynamicFeatureLoaders[DefinedScope.identifier()] != nil {
-				InternalInconsistency
-					.error(
-						message: "Overriding features scope in features registry - this us usually a bug.",
-						file: file,
-						line: line
-					)
-					.with(Scope.self, for: "scope")
-					.asRuntimeWarning()
-			}  // else noop
+		if self.treeRegistry.state.scopedDynamicFeatureLoaders[DefinedScope.identifier()] != nil {
+			InternalInconsistency
+				.error(
+					message: "Overriding features scope in features registry - this us usually a bug.",
+					file: file,
+					line: line
+				)
+				.with(Scope.self, for: "scope")
+				.asRuntimeWarning()
+		}  // else noop
 		#endif
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[DefinedScope.identifier()] = .init()
 		var scopeRegistry: FeaturesRegistry<DefinedScope> = .init(treeRegistry: self.treeRegistry)
@@ -125,26 +125,39 @@ where Scope == RootFeaturesScope {
 		line: UInt = #line
 	) where Feature: StaticFeature {
 		#if DEBUG
-			if self.treeRegistry.state.staticFeatures[Feature.identifier()] != nil {
-				InternalInconsistency
-					.error(
-						message: "Overriding feature implementation in features registry - this us usually a bug.",
-						file: file,
-						line: line
-					)
-					.asRuntimeWarning()
-			}  // else noop
+		if self.treeRegistry.state.staticFeatures[Feature.identifier()] != nil {
+			InternalInconsistency
+				.error(
+					message: "Overriding feature implementation in features registry - this us usually a bug.",
+					file: file,
+					line: line
+				)
+				.asRuntimeWarning()
+		}  // else noop
 		#endif
 		self.treeRegistry.state.staticFeatures[Feature.identifier()] = instance
 	}
 
 	public mutating func use<Implementation>(
 		_ implementation: Implementation.Type,
+		with configuration: Implementation.Configuration,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) where Implementation: ImplementationOfStaticFeature {
 		self.use(
-			Implementation().instance,
+			Implementation(with: configuration).instance,
+			file: file,
+			line: line
+		)
+	}
+
+	public mutating func use<Implementation>(
+		_ implementation: Implementation.Type,
+		file: StaticString = #fileID,
+		line: UInt = #line
+	) where Implementation: ImplementationOfStaticFeature, Implementation.Configuration == Void {
+		self.use(
+			Implementation(with: Void()).instance,
 			file: file,
 			line: line
 		)

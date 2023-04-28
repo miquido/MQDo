@@ -24,12 +24,13 @@ public struct FeaturesScopeContextUnavailable: TheError {
 	) -> Self
 	where Scope: FeaturesScope {
 		Self(
-			context: .context(
-				message: message,
-				file: file,
-				line: line
-			)
-			.with(scope, for: "unavailable scope context")
+			context:
+				.context(
+					message: message,
+					file: file,
+					line: line
+				)
+				.with(scope, for: "unavailable scope context")
 		)
 	}
 
