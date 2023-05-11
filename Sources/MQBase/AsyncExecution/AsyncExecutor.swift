@@ -212,37 +212,37 @@ extension SystemAsyncExecutor {
 }
 
 #if DEBUG
-	extension AsyncExecutor {
+extension AsyncExecutor {
 
-		public static func mock(
-			using control: AsyncExecutorControl
-		) -> Self {
+	public static func mock(
+		using control: AsyncExecutorControl
+	) -> Self {
 
-			@Sendable func schedule(
-				_ task: @escaping @Sendable () async -> Void
-			) -> AsyncExecution {
-				control.addTask(task, withIdentifier: .empty())
-			}
-
-			@Sendable func scheduleReplacing(
-				_ identifier: AsyncExecutionIdentifier,
-				_ task: @escaping @Sendable () async -> Void
-			) -> AsyncExecution {
-				control.addOrReplaceTask(task, withIdentifier: identifier)
-			}
-
-			@Sendable func scheduleReusing(
-				_ identifier: AsyncExecutionIdentifier,
-				_ task: @escaping @Sendable () async -> Void
-			) -> AsyncExecution {
-				control.addOrReuseTask(task, withIdentifier: identifier)
-			}
-
-			return .init(
-				schedule: schedule(_:),
-				scheduleReplacing: scheduleReplacing(_:_:),
-				scheduleReusing: scheduleReusing(_:_:)
-			)
+		@Sendable func schedule(
+			_ task: @escaping @Sendable () async -> Void
+		) -> AsyncExecution {
+			control.addTask(task, withIdentifier: .empty())
 		}
+
+		@Sendable func scheduleReplacing(
+			_ identifier: AsyncExecutionIdentifier,
+			_ task: @escaping @Sendable () async -> Void
+		) -> AsyncExecution {
+			control.addOrReplaceTask(task, withIdentifier: identifier)
+		}
+
+		@Sendable func scheduleReusing(
+			_ identifier: AsyncExecutionIdentifier,
+			_ task: @escaping @Sendable () async -> Void
+		) -> AsyncExecution {
+			control.addOrReuseTask(task, withIdentifier: identifier)
+		}
+
+		return .init(
+			schedule: schedule(_:),
+			scheduleReplacing: scheduleReplacing(_:_:),
+			scheduleReusing: scheduleReusing(_:_:)
+		)
 	}
+}
 #endif

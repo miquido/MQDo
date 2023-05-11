@@ -184,28 +184,28 @@ extension RootFeatures: FeaturesContainer {
 	}
 
 	#if DEBUG
-		@Sendable internal func which<Feature>(
-			_: Feature.Type
-		) -> String
-		where Feature: DisposableFeature {
-			if let loader: FeatureLoader = self.featuresRegistry.dynamicFeatureLoaders[Feature.identifier()] {
-				return "---\nScope: \(RootFeaturesScope.self)\n\(loader.debugDescription)"
-			}
-			else {
-				return "---\nFeature \(Feature.self) is not defined!"
-			}
+	@Sendable internal func which<Feature>(
+		_: Feature.Type
+	) -> String
+	where Feature: DisposableFeature {
+		if let loader: FeatureLoader = self.featuresRegistry.dynamicFeatureLoaders[Feature.identifier()] {
+			return "---\nScope: \(RootFeaturesScope.self)\n\(loader.debugDescription)"
 		}
+		else {
+			return "---\nFeature \(Feature.self) is not defined!"
+		}
+	}
 
-		@Sendable internal func which<Feature>(
-			_: Feature.Type
-		) -> String
-		where Feature: CacheableFeature {
-			if let loader: FeatureLoader = self.featuresRegistry.dynamicFeatureLoaders[Feature.identifier()] {
-				return "---\nScope: \(RootFeaturesScope.self)\n\(loader.debugDescription)"
-			}
-			else {
-				return "---\nFeature \(Feature.self) is not defined!"
-			}
+	@Sendable internal func which<Feature>(
+		_: Feature.Type
+	) -> String
+	where Feature: CacheableFeature {
+		if let loader: FeatureLoader = self.featuresRegistry.dynamicFeatureLoaders[Feature.identifier()] {
+			return "---\nScope: \(RootFeaturesScope.self)\n\(loader.debugDescription)"
 		}
+		else {
+			return "---\nFeature \(Feature.self) is not defined!"
+		}
+	}
 	#endif
 }

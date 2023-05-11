@@ -53,6 +53,12 @@ extension Diagnostics {
 
 extension OSDiagnostics: ImplementationOfStaticFeature {
 
+	public init(
+		with configuration: Void
+	) {
+		self.init()
+	}
+
 	@_transparent
 	@Sendable public func log(
 		_ log: Diagnostics.Log

@@ -182,30 +182,30 @@ extension ScopedFeatures: FeaturesContainer {
 	}
 
 	#if DEBUG
-		@Sendable internal func which<Feature>(
-			_: Feature.Type
-		) -> String
-		where Feature: DisposableFeature {
-			if let loader: FeatureLoader = self.featuresRegistry.dynamicFeatureLoaders[Feature.identifier()] {
-				return "---\nScope: \(Scope.self)\n\(loader.debugDescription)"
-			}
-			else {
-				return self.parent
-					.which(Feature.self)
-			}
+	@Sendable internal func which<Feature>(
+		_: Feature.Type
+	) -> String
+	where Feature: DisposableFeature {
+		if let loader: FeatureLoader = self.featuresRegistry.dynamicFeatureLoaders[Feature.identifier()] {
+			return "---\nScope: \(Scope.self)\n\(loader.debugDescription)"
 		}
+		else {
+			return self.parent
+				.which(Feature.self)
+		}
+	}
 
-		@Sendable internal func which<Feature>(
-			_: Feature.Type
-		) -> String
-		where Feature: CacheableFeature {
-			if let loader: FeatureLoader = self.featuresRegistry.dynamicFeatureLoaders[Feature.identifier()] {
-				return "---\nScope: \(Scope.self)\n\(loader.debugDescription)"
-			}
-			else {
-				return self.parent
-					.which(Feature.self)
-			}
+	@Sendable internal func which<Feature>(
+		_: Feature.Type
+	) -> String
+	where Feature: CacheableFeature {
+		if let loader: FeatureLoader = self.featuresRegistry.dynamicFeatureLoaders[Feature.identifier()] {
+			return "---\nScope: \(Scope.self)\n\(loader.debugDescription)"
 		}
+		else {
+			return self.parent
+				.which(Feature.self)
+		}
+	}
 	#endif
 }

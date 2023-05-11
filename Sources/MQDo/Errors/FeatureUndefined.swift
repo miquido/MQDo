@@ -23,12 +23,13 @@ public struct FeatureUndefined: TheError {
 		line: UInt = #line
 	) -> Self {
 		Self(
-			context: .context(
-				message: message,
-				file: file,
-				line: line
-			)
-			.with(feature, for: "feature")
+			context:
+				.context(
+					message: message,
+					file: file,
+					line: line
+				)
+				.with(feature, for: "feature")
 		)
 	}
 

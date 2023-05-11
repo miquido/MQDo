@@ -19,7 +19,7 @@ final class MockAsyncExecutorTests: XCTestCase {
 	}
 
 	func test_execute_schedulesMultipleTasks() async {
-		for _ in 0..<self.iterations {
+		for _ in 0 ..< self.iterations {
 			executor.execute {
 				do {
 					try await Task.sleep(nanoseconds: NSEC_PER_MSEC * 10)
@@ -51,7 +51,7 @@ final class MockAsyncExecutorTests: XCTestCase {
 			}
 		}
 
-		for _ in 0..<self.iterations {
+		for _ in 0 ..< self.iterations {
 			executor.executeReusingCurrent(
 				function: mockFunction,
 				file: mockFile,
@@ -73,7 +73,7 @@ final class MockAsyncExecutorTests: XCTestCase {
 
 	func test_executeReplacingCurrent_replacesScheduledTasksAndExecutesLast() async {
 
-		for _ in 0..<self.iterations {
+		for _ in 0 ..< self.iterations {
 			executor.executeReplacingCurrent(
 				function: mockFunction,
 				file: mockFile,

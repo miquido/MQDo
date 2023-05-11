@@ -86,7 +86,7 @@ final class SystemAsyncExecutorTests: XCTestCase {
 	}
 
 	func test_execute_executesMultipleTasksAtTheSameTime() {
-		for _ in 0..<self.iterations {
+		for _ in 0 ..< self.iterations {
 			let expectation: XCTestExpectation = expectation(
 				description: "Test completes in required time of \(timeout)s."
 			)
@@ -138,7 +138,7 @@ final class SystemAsyncExecutorTests: XCTestCase {
 			expectation.fulfill()
 		}
 
-		for _ in 0..<self.iterations {
+		for _ in 0 ..< self.iterations {
 			executor.executeReusingCurrent(
 				function: mockFunction,
 				file: mockFile,
@@ -160,7 +160,7 @@ final class SystemAsyncExecutorTests: XCTestCase {
 
 	func test_executeReplacingCurrent_replacesRunningTasksAndExecutesLast() {
 
-		for _ in 0..<self.iterations {
+		for _ in 0 ..< self.iterations {
 			executor.executeReplacingCurrent(
 				function: mockFunction,
 				file: mockFile,

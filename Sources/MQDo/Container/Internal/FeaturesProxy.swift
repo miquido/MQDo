@@ -226,28 +226,28 @@ extension FeaturesProxy: Features {
 	}
 
 	#if DEBUG
-		@Sendable internal func which<Feature>(
-			_: Feature.Type
-		) -> String
-		where Feature: DisposableFeature {
-			if let container: FeaturesContainer = self.container {
-				return container.which(Feature.self)
-			}
-			else {
-				return "N/A"
-			}
+	@Sendable internal func which<Feature>(
+		_: Feature.Type
+	) -> String
+	where Feature: DisposableFeature {
+		if let container: FeaturesContainer = self.container {
+			return container.which(Feature.self)
 		}
+		else {
+			return "N/A"
+		}
+	}
 
-		@Sendable internal func which<Feature>(
-			_: Feature.Type
-		) -> String
-		where Feature: CacheableFeature {
-			if let container: FeaturesContainer = self.container {
-				return container.which(Feature.self)
-			}
-			else {
-				return "N/A"
-			}
+	@Sendable internal func which<Feature>(
+		_: Feature.Type
+	) -> String
+	where Feature: CacheableFeature {
+		if let container: FeaturesContainer = self.container {
+			return container.which(Feature.self)
 		}
+		else {
+			return "N/A"
+		}
+	}
 	#endif
 }
