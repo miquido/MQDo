@@ -8,16 +8,14 @@ extension FeatureTests {
 	public final func test<Feature>(
 		_ implementation: FeatureLoader,
 		context: Feature.Context,
-		timeout: TimeInterval = 0.5,
 		when patches: @escaping (FeaturePatches) -> Void = {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Void,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) where Feature: CacheableFeature {
-		self.test(
-			timeout: timeout,
+	) async where Feature: CacheableFeature {
+		await self.test(
 			patches: patches,
 			execute: { (testFeatures: DummyFeatures) throws -> Void in
 				try await executing(
@@ -38,16 +36,14 @@ extension FeatureTests {
 
 	public final func test<Feature>(
 		_ implementation: FeatureLoader,
-		timeout: TimeInterval = 0.5,
 		when patches: @escaping (FeaturePatches) -> Void = {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Void,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
-		self.test(
-			timeout: timeout,
+	) async where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
+		await self.test(
 			patches: patches,
 			execute: { (testFeatures: DummyFeatures) throws -> Void in
 				try await executing(
@@ -70,16 +66,14 @@ extension FeatureTests {
 		_ implementation: FeatureLoader,
 		context: Feature.Context,
 		returnsEqual expected: Returned,
-		timeout: TimeInterval = 0.5,
 		when patches: @escaping (FeaturePatches) -> Void = {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Returned,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) where Feature: CacheableFeature, Returned: Equatable {
-		self.test(
-			timeout: timeout,
+	) async where Feature: CacheableFeature, Returned: Equatable {
+		await self.test(
 			patches: patches,
 			returnsEqual: expected,
 			execute: { (testFeatures: DummyFeatures) throws -> Returned in
@@ -102,16 +96,14 @@ extension FeatureTests {
 	public final func test<Feature, Returned>(
 		_ implementation: FeatureLoader,
 		returnsEqual expected: Returned,
-		timeout: TimeInterval = 0.5,
 		when patches: @escaping (FeaturePatches) -> Void = {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Returned,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext, Returned: Equatable {
-		self.test(
-			timeout: timeout,
+	) async where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext, Returned: Equatable {
+		await self.test(
 			patches: patches,
 			returnsEqual: expected,
 			execute: { (testFeatures: DummyFeatures) throws -> Returned in
@@ -135,16 +127,14 @@ extension FeatureTests {
 		_ implementation: FeatureLoader,
 		context: Feature.Context,
 		throws expected: ExpectedError.Type,
-		timeout: TimeInterval = 0.5,
 		when patches: @escaping (FeaturePatches) -> Void = {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Returned,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) where Feature: CacheableFeature, ExpectedError: Error {
-		self.test(
-			timeout: timeout,
+	) async where Feature: CacheableFeature, ExpectedError: Error {
+		await self.test(
 			patches: patches,
 			throws: expected,
 			execute: { (testFeatures: DummyFeatures) throws -> Returned in
@@ -167,16 +157,14 @@ extension FeatureTests {
 	public final func test<Feature, Returned, ExpectedError>(
 		_ implementation: FeatureLoader,
 		throws expected: ExpectedError.Type,
-		timeout: TimeInterval = 0.5,
 		when patches: @escaping (FeaturePatches) -> Void = {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Returned,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext, ExpectedError: Error {
-		self.test(
-			timeout: timeout,
+	) async where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext, ExpectedError: Error {
+		await self.test(
 			patches: patches,
 			throws: expected,
 			execute: { (testFeatures: DummyFeatures) throws -> Returned in
@@ -200,14 +188,12 @@ extension FeatureTests {
 		_ implementation: FeatureLoader,
 		context: Feature.Context,
 		executedPrepared expectedExecutionCount: UInt,
-		timeout: TimeInterval = 0.5,
 		when patches: @escaping (FeaturePatches, @escaping @Sendable () -> Void) -> Void,
 		executing: @escaping (Feature) async throws -> Returned,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) where Feature: CacheableFeature {
-		self.test(
-			timeout: timeout,
+	) async where Feature: CacheableFeature {
+		await self.test(
 			patches: patches,
 			executedPrepared: expectedExecutionCount,
 			execute: { (testFeatures: DummyFeatures) throws -> Returned in
@@ -230,14 +216,12 @@ extension FeatureTests {
 	public final func test<Feature, Returned>(
 		_ implementation: FeatureLoader,
 		executedPrepared expectedExecutionCount: UInt,
-		timeout: TimeInterval = 0.5,
 		when patches: @escaping (FeaturePatches, @escaping @Sendable () -> Void) -> Void,
 		executing: @escaping (Feature) async throws -> Returned,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
-		self.test(
-			timeout: timeout,
+	) async where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
+		await self.test(
 			patches: patches,
 			executedPrepared: expectedExecutionCount,
 			execute: { (testFeatures: DummyFeatures) throws -> Returned in
@@ -261,14 +245,12 @@ extension FeatureTests {
 		_ implementation: FeatureLoader,
 		context: Feature.Context,
 		executedPreparedUsing expectedArgument: Argument,
-		timeout: TimeInterval = 0.5,
 		when patches: @escaping (FeaturePatches, @escaping @Sendable (Argument) -> Void) -> Void,
 		executing: @escaping (Feature) async throws -> Returned,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	) where Feature: CacheableFeature, Argument: Equatable & Sendable {
-		self.test(
-			timeout: timeout,
+	) async where Feature: CacheableFeature, Argument: Equatable & Sendable {
+		await self.test(
 			patches: patches,
 			executedPreparedUsing: expectedArgument,
 			execute: { (testFeatures: DummyFeatures) throws -> Returned in
@@ -291,19 +273,17 @@ extension FeatureTests {
 	public final func test<Feature, Returned, Argument>(
 		_ implementation: FeatureLoader,
 		executedPreparedUsing expectedArgument: Argument,
-		timeout: TimeInterval = 0.5,
 		when patches: @escaping (FeaturePatches, @escaping @Sendable (Argument) -> Void) -> Void,
 		executing: @escaping (Feature) async throws -> Returned,
 		file: StaticString = #fileID,
 		line: UInt = #line
-	)
+	) async
 	where
 		Feature: CacheableFeature,
 		Feature.Context == CacheableFeatureVoidContext,
 		Argument: Equatable & Sendable
 	{
-		self.test(
-			timeout: timeout,
+		await self.test(
 			patches: patches,
 			executedPreparedUsing: expectedArgument,
 			execute: { (testFeatures: DummyFeatures) throws -> Returned in

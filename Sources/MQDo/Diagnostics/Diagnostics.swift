@@ -11,8 +11,9 @@ public struct Diagnostics {
 		case debug(String)
 	}
 
-	public var appInfo: @Sendable () -> String
 	public var deviceInfo: @Sendable () -> String
+	public var systemInfo: @Sendable () -> String
+	public var applicationInfo: @Sendable () -> String
 	public var log: @Sendable (Log) -> Void
 	public var diagnosticsInfo: @Sendable () -> Array<String>
 }
@@ -21,8 +22,9 @@ extension Diagnostics: StaticFeature {
 
 	public static var placeholder: Diagnostics {
 		.init(
-			appInfo: unimplemented0(),
 			deviceInfo: unimplemented0(),
+			systemInfo: unimplemented0(),
+			applicationInfo: unimplemented0(),
 			log: unimplemented1(),
 			diagnosticsInfo: unimplemented0()
 		)
@@ -35,18 +37,23 @@ extension Diagnostics {
 
 	public static var disabled: Diagnostics {
 		.init(
-			appInfo: {
-				FeatureUnavailable
-					.error(feature: Diagnostics.self)
-					.displayableMessage.resolved
-			},
 			deviceInfo: {
 				FeatureUnavailable
 					.error(feature: Diagnostics.self)
 					.displayableMessage.resolved
 			},
+			systemInfo: {
+				FeatureUnavailable
+					.error(feature: Diagnostics.self)
+					.displayableMessage.resolved
+			},
+			applicationInfo: {
+				FeatureUnavailable
+					.error(feature: Diagnostics.self)
+					.displayableMessage.resolved
+			},
 			log: noop,
-			diagnosticsInfo: { .init() }
+			diagnosticsInfo: always(.init())
 		)
 	}
 }
@@ -56,10 +63,10 @@ extension OSDiagnostics: ImplementationOfStaticFeature {
 	public init(
 		with configuration: Void
 	) {
-		self.init()
+		self = .shared
 	}
 
-	@_transparent
+	@_transparent @inline(__always)
 	@Sendable public func log(
 		_ log: Diagnostics.Log
 	) {
@@ -77,10 +84,11 @@ extension OSDiagnostics: ImplementationOfStaticFeature {
 
 	public nonisolated var instance: Diagnostics {
 		.init(
-			appInfo: self.appInfo,
-			deviceInfo: self.deviceInfo,
+			deviceInfo: always(self.device),
+			systemInfo: always(self.system),
+			applicationInfo: always(self.application),
 			log: self.log(_:),
-			diagnosticsInfo: self.diagnosticsInfo
+			diagnosticsInfo: always(self.diagnosticsInfo())
 		)
 	}
 }
