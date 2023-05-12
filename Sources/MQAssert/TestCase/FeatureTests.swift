@@ -32,50 +32,37 @@ open class FeatureTests: XCTestCase {
 	}
 
 	public final func test(
-		timeout: TimeInterval,
 		patches: @escaping (FeaturePatches) -> Void,
 		execute: @escaping (DummyFeatures) async throws -> Void,
 		file: StaticString,
 		line: UInt
-	) {
-		let expectation: XCTestExpectation = expectation(
-			description: "Test completes in required time of \(timeout)s."
-		)
-
-		let testTask: Task<Void, Never> = .init {
-			do {
-				let testFeatures: DummyFeatures = .init()
-				let testPatches: FeaturePatches = .init(
-					using: testFeatures
-				)
-				self.commonPatches(testPatches)
-				patches(testPatches)
-				try await execute(testFeatures)
-			}
-			catch {
-				XCTFail(
-					"Unexpected error thrown: \(error)",
-					file: file,
-					line: line
-				)
-			}
-			expectation.fulfill()
+	) async {
+		do {
+			let testFeatures: DummyFeatures = .init()
+			let testPatches: FeaturePatches = .init(
+				using: testFeatures
+			)
+			self.commonPatches(testPatches)
+			patches(testPatches)
+			try await execute(testFeatures)
 		}
-
-		waitForExpectations(timeout: timeout)
-		testTask.cancel()
+		catch {
+			XCTFail(
+				"Unexpected error thrown: \(error)",
+				file: file,
+				line: line
+			)
+		}
 	}
 
 	public final func test<Returned>(
-		timeout: TimeInterval,
 		patches: @escaping (FeaturePatches) -> Void,
 		returnsEqual expected: Returned,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
 		file: StaticString,
 		line: UInt
-	) where Returned: Equatable {
-		self.test(
-			timeout: timeout,
+	) async where Returned: Equatable {
+		await self.test(
 			patches: patches,
 			execute: { (testFeatures: DummyFeatures) throws -> Void in
 				let returned: Returned = try await execute(
@@ -94,15 +81,13 @@ open class FeatureTests: XCTestCase {
 	}
 
 	public final func test<Returned, ExpectedError>(
-		timeout: TimeInterval,
 		patches: @escaping (FeaturePatches) -> Void,
 		throws expected: ExpectedError.Type,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
 		file: StaticString,
 		line: UInt
-	) where ExpectedError: Error {
-		self.test(
-			timeout: timeout,
+	) async where ExpectedError: Error {
+		await self.test(
 			patches: patches,
 			execute: { (testFeatures: DummyFeatures) throws -> Void in
 				do {
@@ -125,16 +110,14 @@ open class FeatureTests: XCTestCase {
 	}
 
 	public final func test<Returned>(
-		timeout: TimeInterval,
 		patches: @escaping (FeaturePatches, @escaping @Sendable () -> Void) -> Void,
 		executedPrepared expectedExecutionCount: UInt,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
 		file: StaticString,
 		line: UInt
-	) {
+	) async {
 		let executedCount: CriticalSection<UInt> = .init(0)
-		self.test(
-			timeout: timeout,
+		await self.test(
 			patches: { (testPreparation: FeaturePatches) in
 				patches(
 					testPreparation
@@ -160,16 +143,14 @@ open class FeatureTests: XCTestCase {
 	}
 
 	public final func test<Returned, Argument>(
-		timeout: TimeInterval,
 		patches: @escaping (FeaturePatches, @escaping @Sendable (Argument) -> Void) -> Void,
 		executedPreparedUsing expectedArgument: Argument,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
 		file: StaticString,
 		line: UInt
-	) where Argument: Equatable {
+	) async where Argument: Equatable {
 		let usedArgument: CriticalSection<Argument?> = .init(.none)
-		self.test(
-			timeout: timeout,
+		await self.test(
 			patches: { (testPreparation: FeaturePatches) in
 				patches(
 					testPreparation
