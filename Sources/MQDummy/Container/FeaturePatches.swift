@@ -18,7 +18,7 @@ extension FeaturePatches {
 	@Sendable public func callAsFunction<Scope>(
 		use scope: Scope.Type,
 		with context: Scope.Context,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Scope: FeaturesScope {
 		self.features
@@ -32,7 +32,7 @@ extension FeaturePatches {
 	///
 	@Sendable public func callAsFunction<Scope>(
 		use scope: Scope.Type,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Scope: FeaturesScope, Scope.Context == Void {
 		self.features
@@ -46,7 +46,7 @@ extension FeaturePatches {
 	///
 	@Sendable public func callAsFunction<Feature>(
 		use instance: Feature,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: StaticFeature {
 		self.features
@@ -61,7 +61,7 @@ extension FeaturePatches {
 	///
 	@Sendable public func callAsFunction<Feature>(
 		use instance: Feature,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: DisposableFeature {
 		self.features
@@ -76,7 +76,7 @@ extension FeaturePatches {
 	///
 	@Sendable public func callAsFunction<Feature>(
 		use instance: Feature,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		self.features
@@ -92,7 +92,7 @@ extension FeaturePatches {
 	@Sendable public func callAsFunction<Feature>(
 		use instance: Feature,
 		context: Feature.Context,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature {
 		self.features
@@ -109,7 +109,7 @@ extension FeaturePatches {
 	@_disfavoredOverload @Sendable public func callAsFunction<Feature, Property>(
 		patch keyPath: WritableKeyPath<Feature, Property>,
 		with updated: Property,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: StaticFeature {
 		self.features
@@ -126,7 +126,7 @@ extension FeaturePatches {
 	@_disfavoredOverload @Sendable public func callAsFunction<Feature, Property>(
 		patch keyPath: WritableKeyPath<Feature, Property>,
 		with updated: Property,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: DisposableFeature {
 		self.features
@@ -143,7 +143,7 @@ extension FeaturePatches {
 	@_disfavoredOverload @Sendable public func callAsFunction<Feature, Property>(
 		patch keyPath: WritableKeyPath<Feature, Property>,
 		with updated: Property,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		self.features
@@ -162,7 +162,7 @@ extension FeaturePatches {
 		patch keyPath: WritableKeyPath<Feature, Property>,
 		context: Feature.Context,
 		with updated: Property,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature {
 		self.features
@@ -180,7 +180,7 @@ extension FeaturePatches {
 	@_disfavoredOverload @Sendable public func callAsFunction<Feature>(
 		patch feature: Feature.Type,
 		with update: (inout Feature) -> Void,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: StaticFeature {
 		self.features
@@ -197,7 +197,7 @@ extension FeaturePatches {
 	@_disfavoredOverload @Sendable public func callAsFunction<Feature>(
 		patch feature: Feature.Type,
 		with update: (inout Feature) -> Void,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: DisposableFeature {
 		self.features
@@ -214,7 +214,7 @@ extension FeaturePatches {
 	@_disfavoredOverload @Sendable public func callAsFunction<Feature>(
 		patch feature: Feature.Type,
 		with update: (inout Feature) -> Void,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		self.features
@@ -233,7 +233,7 @@ extension FeaturePatches {
 		patch feature: Feature.Type,
 		context: Feature.Context,
 		with update: (inout Feature) -> Void,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature {
 		self.features
@@ -251,7 +251,7 @@ extension FeaturePatches {
 	@Sendable public func callAsFunction<Scope>(
 		setContext context: Scope.Context,
 		for scopeType: Scope.Type,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Scope: FeaturesScope {
 		self.features

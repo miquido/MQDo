@@ -13,8 +13,8 @@ public protocol ImplementationOfCacheableFeature<Feature> {
 extension ImplementationOfCacheableFeature {
 
 	public nonisolated static func loader(
-		file: StaticString,
-		line: UInt
+		file: StaticString = #fileID,
+		line: UInt = #line
 	) -> FeatureLoader {
 		.cacheable(
 			Self.Feature.self,

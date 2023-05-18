@@ -111,7 +111,7 @@ extension DummyFeatures {
 	@Sendable public func use<Scope>(
 		context: Scope.Context,
 		for scope: Scope.Type,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Scope: FeaturesScope {
 		self.lock.withLock {
@@ -121,7 +121,7 @@ extension DummyFeatures {
 
 	@Sendable public func use<Feature>(
 		_ feature: Feature,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: StaticFeature {
 		self.lock.withLock {
@@ -132,7 +132,7 @@ extension DummyFeatures {
 	@Sendable public func patch<Feature, Property>(
 		_ keyPath: WritableKeyPath<Feature, Property>,
 		with property: Property,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: StaticFeature {
 		self.lock.withLock {
@@ -145,7 +145,7 @@ extension DummyFeatures {
 	@Sendable public func patch<Feature>(
 		_ feature: Feature.Type,
 		with update: (inout Feature) -> Void,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: StaticFeature {
 		self.lock.withLock {
@@ -157,7 +157,7 @@ extension DummyFeatures {
 
 	@Sendable public func use<Feature>(
 		_ feature: Feature,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: DisposableFeature {
 		self.lock.withLock {
@@ -168,7 +168,7 @@ extension DummyFeatures {
 	@Sendable public func patch<Feature, Property>(
 		_ keyPath: WritableKeyPath<Feature, Property>,
 		with property: Property,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: DisposableFeature {
 		self.lock.withLock {
@@ -181,7 +181,7 @@ extension DummyFeatures {
 	@Sendable public func patch<Feature>(
 		_ feature: Feature.Type,
 		with update: (inout Feature) -> Void,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: DisposableFeature {
 		self.lock.withLock {
@@ -194,7 +194,7 @@ extension DummyFeatures {
 	@Sendable public func use<Feature>(
 		_ feature: Feature,
 		context: Feature.Context,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature {
 		self.lock.withLock {
@@ -206,7 +206,7 @@ extension DummyFeatures {
 		_ keyPath: WritableKeyPath<Feature, Property>,
 		context: Feature.Context,
 		with property: Property,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature {
 		self.lock.withLock {
@@ -220,7 +220,7 @@ extension DummyFeatures {
 		_ feature: Feature.Type,
 		context: Feature.Context,
 		with update: (inout Feature) -> Void,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature {
 		self.lock.withLock {
@@ -232,7 +232,7 @@ extension DummyFeatures {
 
 	@Sendable public func use<Feature>(
 		_ feature: Feature,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		self.lock.withLock {
@@ -243,7 +243,7 @@ extension DummyFeatures {
 	@Sendable public func patch<Feature, Property>(
 		_ keyPath: WritableKeyPath<Feature, Property>,
 		with property: Property,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		self.lock.withLock {
@@ -256,7 +256,7 @@ extension DummyFeatures {
 	@Sendable public func patch<Feature>(
 		_ feature: Feature.Type,
 		with update: (inout Feature) -> Void,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		self.lock.withLock {

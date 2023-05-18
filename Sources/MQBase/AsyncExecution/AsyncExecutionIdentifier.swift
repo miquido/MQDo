@@ -35,8 +35,8 @@ extension AsyncExecutionIdentifier {
 
 	public static func contextual(
 		function: StaticString,
-		file: StaticString,
-		line: UInt
+		file: StaticString = #fileID,
+		line: UInt = #line
 	) -> Self {
 		.init(
 			schedulerIdentifier: "\(file):\(function):\(line)"
