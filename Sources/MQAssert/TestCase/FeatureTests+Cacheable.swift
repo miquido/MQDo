@@ -12,7 +12,7 @@ extension FeatureTests {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Void,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) async where Feature: CacheableFeature {
 		await self.test(
@@ -24,7 +24,7 @@ extension FeatureTests {
 							of: Feature.self,
 							context: context,
 							using: testFeatures,
-							file: file,
+							file: (file),
 							line: line
 						)
 				)
@@ -40,7 +40,7 @@ extension FeatureTests {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Void,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) async where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		await self.test(
@@ -52,7 +52,7 @@ extension FeatureTests {
 							of: Feature.self,
 							context: .void,
 							using: testFeatures,
-							file: file,
+							file: (file),
 							line: line
 						)
 				)
@@ -70,7 +70,7 @@ extension FeatureTests {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Returned,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) async where Feature: CacheableFeature, Returned: Equatable {
 		await self.test(
@@ -83,7 +83,7 @@ extension FeatureTests {
 							of: Feature.self,
 							context: context,
 							using: testFeatures,
-							file: file,
+							file: (file),
 							line: line
 						)
 				)
@@ -100,7 +100,7 @@ extension FeatureTests {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Returned,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) async where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext, Returned: Equatable {
 		await self.test(
@@ -113,7 +113,7 @@ extension FeatureTests {
 							of: Feature.self,
 							context: .void,
 							using: testFeatures,
-							file: file,
+							file: (file),
 							line: line
 						)
 				)
@@ -131,7 +131,7 @@ extension FeatureTests {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Returned,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) async where Feature: CacheableFeature, ExpectedError: Error {
 		await self.test(
@@ -144,7 +144,7 @@ extension FeatureTests {
 							of: Feature.self,
 							context: context,
 							using: testFeatures,
-							file: file,
+							file: (file),
 							line: line
 						)
 				)
@@ -161,7 +161,7 @@ extension FeatureTests {
 			(_: FeaturePatches) -> Void in /* noop */
 		},
 		executing: @escaping (Feature) async throws -> Returned,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) async where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext, ExpectedError: Error {
 		await self.test(
@@ -174,7 +174,7 @@ extension FeatureTests {
 							of: Feature.self,
 							context: .void,
 							using: testFeatures,
-							file: file,
+							file: (file),
 							line: line
 						)
 				)
@@ -190,7 +190,7 @@ extension FeatureTests {
 		executedPrepared expectedExecutionCount: UInt,
 		when patches: @escaping (FeaturePatches, @escaping @Sendable () -> Void) -> Void,
 		executing: @escaping (Feature) async throws -> Returned,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) async where Feature: CacheableFeature {
 		await self.test(
@@ -203,7 +203,7 @@ extension FeatureTests {
 							of: Feature.self,
 							context: context,
 							using: testFeatures,
-							file: file,
+							file: (file),
 							line: line
 						)
 				)
@@ -218,7 +218,7 @@ extension FeatureTests {
 		executedPrepared expectedExecutionCount: UInt,
 		when patches: @escaping (FeaturePatches, @escaping @Sendable () -> Void) -> Void,
 		executing: @escaping (Feature) async throws -> Returned,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) async where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		await self.test(
@@ -231,7 +231,7 @@ extension FeatureTests {
 							of: Feature.self,
 							context: .void,
 							using: testFeatures,
-							file: file,
+							file: (file),
 							line: line
 						)
 				)
@@ -247,7 +247,7 @@ extension FeatureTests {
 		executedPreparedUsing expectedArgument: Argument,
 		when patches: @escaping (FeaturePatches, @escaping @Sendable (Argument) -> Void) -> Void,
 		executing: @escaping (Feature) async throws -> Returned,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) async where Feature: CacheableFeature, Argument: Equatable & Sendable {
 		await self.test(
@@ -260,7 +260,7 @@ extension FeatureTests {
 							of: Feature.self,
 							context: context,
 							using: testFeatures,
-							file: file,
+							file: (file),
 							line: line
 						)
 				)
@@ -275,7 +275,7 @@ extension FeatureTests {
 		executedPreparedUsing expectedArgument: Argument,
 		when patches: @escaping (FeaturePatches, @escaping @Sendable (Argument) -> Void) -> Void,
 		executing: @escaping (Feature) async throws -> Returned,
-		file: StaticString = #fileID,
+		file: StaticString = #filePath,
 		line: UInt = #line
 	) async
 	where
@@ -293,7 +293,7 @@ extension FeatureTests {
 							of: Feature.self,
 							context: .void,
 							using: testFeatures,
-							file: file,
+							file: (file),
 							line: line
 						)
 				)

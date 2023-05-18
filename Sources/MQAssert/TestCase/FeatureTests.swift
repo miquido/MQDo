@@ -34,8 +34,8 @@ open class FeatureTests: XCTestCase {
 	public final func test(
 		patches: @escaping (FeaturePatches) -> Void,
 		execute: @escaping (DummyFeatures) async throws -> Void,
-		file: StaticString,
-		line: UInt
+		file: StaticString = #filePath,
+		line: UInt = #line
 	) async {
 		do {
 			let testFeatures: DummyFeatures = .init()
@@ -49,7 +49,7 @@ open class FeatureTests: XCTestCase {
 		catch {
 			XCTFail(
 				"Unexpected error thrown: \(error)",
-				file: file,
+				file: (file),
 				line: line
 			)
 		}
@@ -59,8 +59,8 @@ open class FeatureTests: XCTestCase {
 		patches: @escaping (FeaturePatches) -> Void,
 		returnsEqual expected: Returned,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
-		file: StaticString,
-		line: UInt
+		file: StaticString = #filePath,
+		line: UInt = #line
 	) async where Returned: Equatable {
 		await self.test(
 			patches: patches,
@@ -84,8 +84,8 @@ open class FeatureTests: XCTestCase {
 		patches: @escaping (FeaturePatches) -> Void,
 		throws expected: ExpectedError.Type,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
-		file: StaticString,
-		line: UInt
+		file: StaticString = #filePath,
+		line: UInt = #line
 	) async where ExpectedError: Error {
 		await self.test(
 			patches: patches,
@@ -113,8 +113,8 @@ open class FeatureTests: XCTestCase {
 		patches: @escaping (FeaturePatches, @escaping @Sendable () -> Void) -> Void,
 		executedPrepared expectedExecutionCount: UInt,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
-		file: StaticString,
-		line: UInt
+		file: StaticString = #filePath,
+		line: UInt = #line
 	) async {
 		let executedCount: CriticalSection<UInt> = .init(0)
 		await self.test(
@@ -146,8 +146,8 @@ open class FeatureTests: XCTestCase {
 		patches: @escaping (FeaturePatches, @escaping @Sendable (Argument) -> Void) -> Void,
 		executedPreparedUsing expectedArgument: Argument,
 		execute: @escaping (DummyFeatures) async throws -> Returned,
-		file: StaticString,
-		line: UInt
+		file: StaticString = #filePath,
+		line: UInt = #line
 	) async where Argument: Equatable {
 		let usedArgument: CriticalSection<Argument?> = .init(.none)
 		await self.test(
