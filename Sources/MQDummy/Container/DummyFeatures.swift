@@ -236,7 +236,7 @@ extension DummyFeatures {
 		line: UInt = #line
 	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		self.lock.withLock {
-			self.items[Feature.itemIdentifier(context: .none)] = feature
+			self.items[Feature.itemIdentifier(context: .void)] = feature
 		}
 	}
 
@@ -247,9 +247,9 @@ extension DummyFeatures {
 		line: UInt = #line
 	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		self.lock.withLock {
-			var instance: Feature = self.items[Feature.itemIdentifier(context: .none)] as? Feature ?? .placeholder
+			var instance: Feature = self.items[Feature.itemIdentifier(context: .void)] as? Feature ?? .placeholder
 			instance[keyPath: keyPath] = property
-			self.items[Feature.itemIdentifier(context: .none)] = instance
+			self.items[Feature.itemIdentifier(context: .void)] = instance
 		}
 	}
 
@@ -260,9 +260,9 @@ extension DummyFeatures {
 		line: UInt = #line
 	) where Feature: CacheableFeature, Feature.Context == CacheableFeatureVoidContext {
 		self.lock.withLock {
-			var instance: Feature = self.items[Feature.itemIdentifier(context: .none)] as? Feature ?? .placeholder
+			var instance: Feature = self.items[Feature.itemIdentifier(context: .void)] as? Feature ?? .placeholder
 			update(&instance)
-			self.items[Feature.itemIdentifier(context: .none)] = instance
+			self.items[Feature.itemIdentifier(context: .void)] = instance
 		}
 	}
 }
@@ -329,7 +329,7 @@ extension DisposableFeature {
 extension CacheableFeature {
 
 	fileprivate static func itemIdentifier(
-		context: Self.Context?
+		context: Self.Context
 	) -> DummyFeatures.ItemIdentifier {
 		.init(
 			Self.self,
