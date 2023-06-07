@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/miquido/MQ-iOS.git",
       "state" : {
-        "revision" : "0762e97748369b5d1aec9ce329815d25f8c533bb",
-        "version" : "0.11.0"
+        "revision" : "bb7df4bd85e3efb44dfb00a162ce785a87c27fab",
+        "version" : "0.12.0"
       }
     }
   ],

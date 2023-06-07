@@ -11,6 +11,8 @@ open class FeatureTests: XCTestCase {
 	}
 
 	public final override class func setUp() {
+		// ensure diagnostics is disabled during tests
+		Diagnostics.disable()
 		super.setUp()
 		runtimeAssertionMethod = { _, _, _, _ in }
 	}

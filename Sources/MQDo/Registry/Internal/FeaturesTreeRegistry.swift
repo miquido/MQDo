@@ -1,4 +1,4 @@
-import struct MQ.OSDiagnostics
+import struct MQ.Diagnostics
 
 internal struct FeaturesTreeRegistry {
 
@@ -8,9 +8,7 @@ internal struct FeaturesTreeRegistry {
 	internal var scopedDynamicFeatureLoaders: Dictionary<FeaturesScopeIdentifier, DynamicFeatureLoaders>
 
 	internal init() {
-		self.staticFeatures = [
-			Diagnostics.identifier(): OSDiagnostics.shared.instance
-		]
+		self.staticFeatures = .init()
 		self.scopedDynamicFeatureLoaders = [
 			RootFeaturesScope.identifier(): .init()
 		]
