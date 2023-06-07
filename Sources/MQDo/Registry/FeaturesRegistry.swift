@@ -26,7 +26,9 @@ where Scope: FeaturesScope {
 					file: file,
 					line: line
 				)
-				.asRuntimeWarning()
+				.asRuntimeWarning(
+					message: "Feature implementation was overriden!"
+				)
 		}  // else noop
 		#endif
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
@@ -51,7 +53,9 @@ where Scope: FeaturesScope {
 					file: file,
 					line: line
 				)
-				.asRuntimeWarning()
+				.asRuntimeWarning(
+					message: "Feature implementation was overriden!"
+				)
 		}  // else noop
 		#endif
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
@@ -76,7 +80,9 @@ where Scope: FeaturesScope {
 					file: file,
 					line: line
 				)
-				.asRuntimeWarning()
+				.asRuntimeWarning(
+					message: "Feature implementation was overriden!"
+				)
 		}  // else noop
 		#endif
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[self.scopeIdentifier]?[loader.identifier] = loader
@@ -111,7 +117,9 @@ where Scope == RootFeaturesScope {
 					line: line
 				)
 				.with(Scope.self, for: "scope")
-				.asRuntimeWarning()
+				.asRuntimeWarning(
+					message: "Feature implementation was overriden!"
+				)
 		}  // else noop
 		#endif
 		self.treeRegistry.state.scopedDynamicFeatureLoaders[DefinedScope.identifier()] = .init()
@@ -132,7 +140,9 @@ where Scope == RootFeaturesScope {
 					file: file,
 					line: line
 				)
-				.asRuntimeWarning()
+				.asRuntimeWarning(
+					message: "Feature implementation was overriden!"
+				)
 		}  // else noop
 		#endif
 		self.treeRegistry.state.staticFeatures[Feature.identifier()] = instance

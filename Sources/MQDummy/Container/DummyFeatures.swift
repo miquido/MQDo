@@ -11,9 +11,7 @@ public final class DummyFeatures {
 		with patches: (FeaturePatches) -> Void = { _ in /* noop */ }
 	) {
 		self.lock = .init()
-		self.items = [
-			Diagnostics.itemIdentifier(): Diagnostics.disabled
-		]
+		self.items = .init()
 		patches(FeaturePatches(using: self))
 	}
 }
