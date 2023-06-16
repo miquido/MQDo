@@ -19,7 +19,7 @@ public struct FeatureUnavailable: TheError {
 	/// - Returns: New instance of ``FeatureUnavailable`` error with given context.
 	public static func error(
 		message: StaticString = "FeatureUnavailable",
-		displayableMessage: DisplayableString = TheErrorDisplayableMessages.message(for: Self.self),
+		displayableMessage: DisplayableString,
 		feature: Any.Type,
 		file: StaticString = #fileID,
 		line: UInt = #line

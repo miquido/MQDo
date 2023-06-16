@@ -18,7 +18,6 @@ public struct FeaturesContainerUnavailable: TheError {
 	/// - Returns: New instance of ``FeaturesContainerUnavailable`` error with given context.
 	public static func error(
 		message: StaticString = "FeaturesContainerUnavailable",
-		displayableMessage: DisplayableString = TheErrorDisplayableMessages.message(for: Self.self),
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self {
@@ -27,13 +26,10 @@ public struct FeaturesContainerUnavailable: TheError {
 				message: message,
 				file: file,
 				line: line
-			),
-			displayableMessage: displayableMessage
+			)
 		)
 	}
 
 	/// Source code context of this error.
 	public var context: SourceCodeContext
-	/// String representation displayable to the end user.
-	public var displayableMessage: DisplayableString
 }
