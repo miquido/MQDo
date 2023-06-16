@@ -140,7 +140,7 @@ extension FeatureLoader {
 	public static func unavailable<Feature>(
 		_: Feature.Type = Feature.self,
 		message: StaticString = "Feature unavailable",
-		displayableMessage: DisplayableString = TheErrorDisplayableMessages.message(for: FeatureUnavailable.self),
+		displayableMessage: DisplayableString,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
@@ -186,7 +186,7 @@ extension FeatureLoader {
 	public static func unavailable<Feature>(
 		_: Feature.Type = Feature.self,
 		message: StaticString = "Feature unavailable",
-		displayableMessage: DisplayableString = TheErrorDisplayableMessages.message(for: FeatureUnavailable.self),
+		displayableMessage: DisplayableString,
 		file: StaticString = #fileID,
 		line: UInt = #line
 	) -> Self
