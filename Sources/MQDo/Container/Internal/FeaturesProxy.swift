@@ -14,6 +14,28 @@ internal struct FeaturesProxy {
 
 extension FeaturesProxy: Features {
 
+	@Sendable internal func retainContainer(
+		file: StaticString,
+		line: UInt
+	) throws -> FeaturesContainer {
+		if let container: FeaturesContainer = self.container {
+			return container
+		}
+		else {
+			throw
+				FeaturesContainerUnavailable
+				.error(
+					file: file,
+					line: line
+				)
+				.asRuntimeWarning(
+					message: "Using detached features container. This is likely a memory issue.",
+					file: file,
+					line: line
+				)
+		}
+	}
+
 	@_transparent
 	@Sendable internal func require<Scope>(
 		_ scope: Scope.Type,

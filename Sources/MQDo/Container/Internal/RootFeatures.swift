@@ -22,6 +22,14 @@ extension RootFeatures: @unchecked Sendable {}
 extension RootFeatures: FeaturesContainer {
 
 	@_transparent
+	@Sendable internal func retainContainer(
+		file: StaticString,
+		line: UInt
+	) throws -> FeaturesContainer {
+		self
+	}
+
+	@_transparent
 	@Sendable internal func require<Scope>(
 		_ scope: Scope.Type,
 		file: StaticString = #file,

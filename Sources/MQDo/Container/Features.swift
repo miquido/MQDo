@@ -1,5 +1,10 @@
 public protocol Features: Sendable {
 
+	@Sendable func retainContainer(
+		file: StaticString,
+		line: UInt
+	) throws -> FeaturesContainer
+
 	@Sendable func branch<Scope>(
 		_ scope: Scope.Type,
 		context: Scope.Context,
@@ -59,6 +64,17 @@ public protocol Features: Sendable {
 }
 
 extension Features {
+
+	@_transparent
+	@Sendable func retainContainer(
+		file: StaticString = #file,
+		line: UInt = #line
+	) throws -> FeaturesContainer {
+		try self.retainContainer(
+			file: file,
+			line: line
+		)
+	}
 
 	@_transparent
 	@Sendable public func require<Scope>(

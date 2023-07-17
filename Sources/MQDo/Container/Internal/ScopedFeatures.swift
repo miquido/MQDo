@@ -28,6 +28,14 @@ extension ScopedFeatures: @unchecked Sendable {}
 
 extension ScopedFeatures: FeaturesContainer {
 
+	@_transparent
+	@Sendable internal func retainContainer(
+		file: StaticString,
+		line: UInt
+	) throws -> FeaturesContainer {
+		self
+	}
+
 	@Sendable internal func require<RequestedScope>(
 		_ scope: RequestedScope.Type,
 		file: StaticString,
