@@ -20,6 +20,14 @@ extension DummyFeatures: @unchecked Sendable {}
 
 extension DummyFeatures: FeaturesContainer {
 
+	@_transparent
+	@Sendable public func retainContainer(
+		file: StaticString,
+		line: UInt
+	) throws -> FeaturesContainer {
+		self
+	}
+
 	@Sendable public func context<Scope>(
 		for scope: Scope.Type,
 		file: StaticString,
